@@ -1,21 +1,39 @@
-# Use a spark base
+# ── Base image: Spark 4.0.2 with Scala 2.13, Java 17, Python 3, Ubuntu ──────
 FROM spark:4.0.2-scala2.13-java17-python3-ubuntu
 
-# 1. Install Java 17 (Required for Spark 4.x) and curl
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# System utilities
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# 3. Setup 'uv' for dependency management
+# ── uv — fast Python package manager ────────────────────────────────────────
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-# 4. Copy and sync your project
-COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen
+# ── Python dependencies ──────────────────────────────────────────────────────
+# Copy only the dependency manifest first so Docker can cache this layer
+COPY pyproject.toml ./
+RUN uv sync
 
-# Expose Spark Connect (15002) and Spark UI (4040)
-EXPOSE 15002 4040
+# ── Spark configuration ──────────────────────────────────────────────────────
+# Copies spark-defaults.conf so every SparkSession picks up Iceberg/Delta/Kafka
+# packages and catalog settings automatically — no extra code in notebooks needed
+COPY spark_conf/spark-defaults.conf /opt/spark/conf/spark-defaults.conf
+
+# ── Ports (8888=JupyterLab, 4040/4041=Spark UI, 18080=History Server) ────────
+EXPOSE 8888 4040 4041 18080
+
+# ── Start JupyterLab ─────────────────────────────────────────────────────────
+# Token/password disabled so the browser opens immediately (learning environment)
+CMD ["bash", "-c", \
+     "mkdir -p /app/.tmp/spark-events && \
+      uv run jupyter lab \
+        --ip=0.0.0.0 \
+        --port=8888 \
+        --allow-root \
+        --no-browser \
+        --ServerApp.token='' \
+        --ServerApp.password=''"]
+
 
 # Default command: Start the Connect Server
 # We bind to 0.0.0.0 so it's accessible outside the container

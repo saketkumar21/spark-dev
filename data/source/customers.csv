@@ -1,0 +1,21 @@
+customer_id,name,email,phone,city,state,membership_tier,join_date
+C001,Alice Johnson,alice.johnson@example.com,555-0101,San Francisco,CA,Gold,2022-01-15
+C002,Bob Smith,bob.smith@example.com,555-0102,New York,NY,Silver,2021-06-20
+C003,Carol White,carol.white@example.com,555-0103,Chicago,IL,Bronze,2023-03-10
+C004,David Lee,david.lee@example.com,555-0104,Austin,TX,Gold,2020-11-05
+C005,Eve Martinez,eve.martinez@example.com,555-0105,Seattle,WA,Platinum,2019-08-22
+C006,Frank Brown,frank.brown@example.com,555-0106,Boston,MA,Silver,2022-07-18
+C007,Grace Kim,grace.kim@example.com,555-0107,Los Angeles,CA,Gold,2021-02-28
+C008,Henry Wilson,henry.wilson@example.com,555-0108,Denver,CO,Bronze,2023-09-01
+C009,Iris Chen,iris.chen@example.com,555-0109,Portland,OR,Silver,2022-04-14
+C010,James Davis,james.davis@example.com,555-0110,Miami,FL,Bronze,2023-11-30
+C011,Karen Taylor,karen.taylor@example.com,555-0111,Atlanta,GA,Platinum,2018-05-12
+C012,Liam Anderson,liam.anderson@example.com,555-0112,Phoenix,AZ,Gold,2020-09-07
+C013,Maya Patel,maya.patel@example.com,555-0113,San Diego,CA,Silver,2021-12-19
+C014,Noah Garcia,noah.garcia@example.com,555-0114,Dallas,TX,Bronze,2023-06-25
+C015,Olivia Chen,olivia.chen@example.com,555-0115,Minneapolis,MN,Gold,2020-03-03
+C016,Paul Martinez,paul.martinez@example.com,555-0116,Nashville,TN,Silver,2022-10-08
+C017,Quinn Johnson,quinn.johnson@example.com,555-0117,Philadelphia,PA,Bronze,2023-02-14
+C018,Rachel Kim,rachel.kim@example.com,555-0118,San Jose,CA,Platinum,2019-01-30
+C019,Sam Wilson,sam.wilson@example.com,555-0119,Columbus,OH,Gold,2021-08-11
+C020,Tara Brown,tara.brown@example.com,555-0120,Charlotte,NC,Silver,2022-05-27

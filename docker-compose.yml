@@ -1,20 +1,56 @@
 services:
-  spark-server:
-    build: .
-    container_name: spark-server
-    ports:
-      - "4040:4040"   # Spark UI
-      - "15002:15002" # Spark Connect
-    environment:
-      - SPARK_NO_DAEMONIZE=true # Keeps the container running
 
+  # ── Kafka broker (KRaft mode — no ZooKeeper) ──────────────────────────────
+  kafka:
+    image: bitnami/kafka:3.9
+    container_name: kafka
+    ports:
+      - "29092:29092"   # external access from your laptop → localhost:29092
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      # Three listeners:
+      #   PLAINTEXT  — used by other Docker containers (jupyter → kafka:9092)
+      #   CONTROLLER — internal Raft elections
+      #   EXTERNAL   — used by apps on the host (localhost:29092)
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # ── Kafka UI — visual topic browser ──────────────────────────────────────
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"     # http://localhost:8080
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ── JupyterLab + PySpark ──────────────────────────────────────────────────
   jupyter:
     build: .
-    container_name: jupyter-lab
+    container_name: jupyter-spark
     volumes:
-      - .:/app
+      - .:/app          # live-reload: edits on host appear instantly in notebooks
     ports:
-      - "8888:8888"
+      - "8888:8888"     # JupyterLab  → http://localhost:8888
+      - "4040:4040"     # Spark UI (first active app)
+      - "4041:4041"     # Spark UI (second active app)
+      - "18080:18080"   # Spark History Server
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092   # notebooks read this env var
     depends_on:
-      - spark-server
-    command: uv run jupyter lab --ip=0.0.0.0 --allow-root --no-browser
+      kafka:
+        condition: service_healthy

@@ -13,6 +13,9 @@ set +a
 echo "📈 Starting Spark History Server..."
 uv run spark-class org.apache.spark.deploy.history.HistoryServer > .tmp/history_server.log 2>&1 &
 
+# To kill history server
+# pkill -f "org.apache.spark.deploy.history.HistoryServer"
+
 echo "✅ History Server is running at http://localhost:18080 (Logs: .tmp/history_server.log)"
 echo "📓 Launching Jupyter Lab..."
 
