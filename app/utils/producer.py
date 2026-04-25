@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Event producer — writes 2 user-event rows as a new JSONL file every 10 seconds
-into ./data/streaming_input/, the directory that Spark Structured Streaming watches.
+into ./app/data/streaming_input/, the directory that Spark Structured Streaming watches.
 
 Usage:
     uv run python producer.py
@@ -16,7 +16,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 
-OUTPUT_DIR    = "./data/streaming_input"
+OUTPUT_DIR    = "./app/data/streaming_input"
 INTERVAL_SEC  = 10
 
 EVENT_TYPES = ["page_view", "click", "search", "add_to_cart", "purchase", "logout"]

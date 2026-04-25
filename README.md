@@ -78,7 +78,7 @@ docker compose down
 | File | Producer | Transport | Topic |
 |------|----------|-----------|-------|
 | [01_setup_tables.ipynb](01_setup_tables.ipynb) | — | — | Load CSV into Iceberg, Delta Lake, Parquet |
-| [02_streaming_to_iceberg.ipynb](02_streaming_to_iceberg.ipynb) | `producer.py` | **File** (`./data/streaming_input/`) | File-based Structured Streaming → Iceberg |
+| [02_streaming_to_iceberg.ipynb](02_streaming_to_iceberg.ipynb) | `producer.py` | **File** (`./app/data/streaming_input/`) | File-based Structured Streaming → Iceberg |
 | [03_query_iceberg.ipynb](03_query_iceberg.ipynb) | — | — | Time travel, snapshots, schema evolution |
 | [04_sales_streaming_to_iceberg.ipynb](04_sales_streaming_to_iceberg.ipynb) | `sales_producer.py` | **Kafka** (`sales-events`) | Kafka stream-static join (customer enrichment) → Iceberg |
 
@@ -90,7 +90,7 @@ Run notebooks in order: **01 → 02 → 04 → 03**.
 
 ### `producer.py` — file-based (notebook 02)
 
-Writes 2-row JSONL files to `./data/streaming_input/` every 10 s.  
+Writes 2-row JSONL files to `./app/data/streaming_input/` every 10 s.  
 No Kafka required.
 
 ```bash
@@ -139,10 +139,13 @@ If you prefer running Spark locally:
 
 ```bash
 uv sync
-./start.sh      # starts Spark History Server + JupyterLab
+./start-spark.sh    # creates .tmp folders, starts History Server + JupyterLab
 ```
 
-Set `KAFKA_BOOTSTRAP_SERVERS=localhost:29092` in a `.env` file if Kafka is running locally.
+For Kafka-based notebooks (04), also start Kafka in another terminal:
+```bash
+./start-kafka.sh    # formats storage + starts broker on localhost:9092
+```
 
 ---
 
@@ -152,13 +155,17 @@ Set `KAFKA_BOOTSTRAP_SERVERS=localhost:29092` in a `.env` file if Kafka is runni
 spark-dev/
 ├── docker-compose.yml          # Kafka + Kafka UI + JupyterLab services
 ├── DockerFile                  # Custom Spark + JupyterLab image
+├── start-spark.sh              # Local: creates dirs + History Server + JupyterLab
+├── start-kafka.sh              # Local: formats + starts Kafka broker (KRaft)
 ├── spark_conf/
 │   └── spark-defaults.conf     # Iceberg, Delta, Kafka packages + catalog config
-├── data/
-│   └── source/
-│       └── customers.csv       # Static reference data (20 customers)
-├── producer.py                 # Kafka producer → user-events
-├── sales_producer.py           # Kafka producer → sales-events
+├── app/data/
+│   ├── source/
+│   │   ├── customers.csv       # Static reference data (20 customers)
+│   │   └── orders.csv          # Sample orders for notebook 01
+│   └── streaming_input/        # producer.py writes JSONL here (auto-created)
+├── producer.py                 # File-based producer → ./app/data/streaming_input/
+├── sales_producer.py           # Kafka producer → sales-events topic
 ├── 01_setup_tables.ipynb
 ├── 02_streaming_to_iceberg.ipynb
 ├── 03_query_iceberg.ipynb

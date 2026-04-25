@@ -1,13 +1,21 @@
 #!/bin/bash
 echo "🚀 Initializing PySpark local environment..."
 
-# 1. Dynamically calculate the absolute path to make configs auto-load and shareable
-# export PROJECT_ROOT="$(pwd)"
+# 1. Create required directories (safe for fresh clones)
+mkdir -p logs app/data/streaming_input
+mkdir -p .tmp/spark-events
+mkdir -p .tmp/checkpoint_user_events
+mkdir -p .tmp/checkpoint_sales_enriched
+mkdir -p .tmp/local_iceberg_warehouse
+mkdir -p .tmp/local_delta_warehouse
 
 # 2. Load .env and export all variables to child processes
 set -a
-source .env
+[ -f .env ] && source .env
 set +a
+
+# 3. Set Spark conf directory if not already set
+export SPARK_CONF_DIR="${SPARK_CONF_DIR:-./spark_conf}"
 
 # 4. Start the History Server in the background quietly
 echo "📈 Starting Spark History Server..."
