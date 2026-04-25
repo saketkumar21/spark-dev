@@ -1,0 +1,20 @@
+services:
+  spark-server:
+    build: .
+    container_name: spark-server
+    ports:
+      - "4040:4040"   # Spark UI
+      - "15002:15002" # Spark Connect
+    environment:
+      - SPARK_NO_DAEMONIZE=true # Keeps the container running
+
+  jupyter:
+    build: .
+    container_name: jupyter-lab
+    volumes:
+      - .:/app
+    ports:
+      - "8888:8888"
+    depends_on:
+      - spark-server
+    command: uv run jupyter lab --ip=0.0.0.0 --allow-root --no-browser

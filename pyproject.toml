@@ -1,0 +1,11 @@
+[project]
+name = "spark-dev"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "jupyterlab>=4.5.6",
+    "pandas>=3.0.2",
+    "pyspark==4.0.2"
+]

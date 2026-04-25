@@ -1,0 +1,22 @@
+# Use a spark base
+FROM spark:4.0.2-scala2.13-java17-python3-ubuntu
+
+# 1. Install Java 17 (Required for Spark 4.x) and curl
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 3. Setup 'uv' for dependency management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+WORKDIR /app
+
+# 4. Copy and sync your project
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen
+
+# Expose Spark Connect (15002) and Spark UI (4040)
+EXPOSE 15002 4040
+
+# Default command: Start the Connect Server
+# We bind to 0.0.0.0 so it's accessible outside the container
+CMD ["/opt/spark/sbin/start-connect-server.sh", "--conf", "spark.driver.bindAddress=0.0.0.0"]
