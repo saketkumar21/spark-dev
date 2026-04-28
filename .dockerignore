@@ -1,0 +1,6 @@
+.tmp/
+.venv/
+.claude/
+.ipynb_checkpoints/
+
+logs/

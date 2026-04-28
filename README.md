@@ -1,33 +1,61 @@
 # Spark Dev — Learning Repo
 
-A self-contained Docker environment for learning **Apache Spark**, **Iceberg**, **Delta Lake**, and **Kafka Structured Streaming**.  
-Clone → start → open Jupyter → learn.
+A Docker-based environment for learning **Apache Spark**, **Iceberg**, **Delta Lake**, and **Kafka Structured Streaming** — with a unified **Spark Connect Server** so every notebook shares one Spark UI.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  docker compose                                         │
+│                                                         │
+│  ┌──────────────────┐   ┌────────────────────────────┐  │
+│  │  kafka            │   │  spark-connect             │  │
+│  │  bitnami/kafka:3.9│◄──│  Spark 4.0.2 Connect Server│  │
+│  │  :9092 (internal) │   │  :15002 (gRPC)             │  │
+│  │  :29092 (external)│   │  :4040  (Spark UI)         │  │
+│  └────────┬──────────┘   └────────────────────────────┘  │
+│           │                                              │
+│  ┌────────▼──────────┐   ┌────────────────────────────┐  │
+│  │  kafka-ui          │   │  spark-history             │  │
+│  │  :8080             │   │  :18080                    │  │
+│  └───────────────────┘   └────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+         ▲                          ▲
+    localhost:29092            sc://localhost:15002
+    (producers on host)       (notebooks on host)
+```
+
+**Key design:** JupyterLab runs **locally on your machine** (not in Docker).  
+Notebooks connect to the Spark Connect Server via `sc://localhost:15002`.  
+All Spark jobs appear in **one unified Spark UI** at `http://localhost:4040`.
 
 ---
 
 ## Prerequisites
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose)
-- That's it — no Python, Java, or Kafka installation required
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Clone the repo
+# 1. Clone and enter
 git clone <repo-url> spark-dev && cd spark-dev
 
-# 2. Build and start all services (first run downloads ~2 GB of images/jars)
-docker compose up --build
+# 2. Install Python dependencies locally
+uv sync
 
-# 3. Open JupyterLab in your browser
-open http://localhost:8888
-```
+# 3. Start Docker services (Spark Connect + Kafka + History Server)
+make up
 
-To stop everything:
-```bash
-docker compose down
+# 4. Start JupyterLab locally
+make jupyter
+
+# 5. Open http://localhost:8888 and run notebooks
 ```
 
 ---
@@ -36,116 +64,62 @@ docker compose down
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| JupyterLab | http://localhost:8888 | Notebooks (no token/password) |
-| Spark UI | http://localhost:4040 | Active SparkSession metrics |
-| Spark UI (2nd app) | http://localhost:4041 | When two sessions are running |
+| Spark Connect | `sc://localhost:15002` | gRPC endpoint for notebooks |
+| Spark UI | http://localhost:4040 | Unified DAG view for all notebooks |
+| History Server | http://localhost:18080 | Completed Spark applications |
 | Kafka UI | http://localhost:8080 | Topic browser, message inspector |
-| Kafka broker | localhost:29092 | Bootstrap server for producers |
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│  docker compose                                 │
-│                                                 │
-│  ┌───────────────┐    ┌──────────────────────┐  │
-│  │  kafka        │    │  jupyter-spark       │  │
-│  │  bitnami/     │◄───│  Spark 4.0.2 +       │  │
-│  │  kafka:3.9    │    │  JupyterLab 4        │  │
-│  │  :9092 (int.) │    │  :8888  :4040  18080 │  │
-│  │  :29092 (ext.)│    └──────────────────────┘  │
-│  └───────┬───────┘                              │
-│          │                                      │
-│  ┌───────▼───────┐                              │
-│  │  kafka-ui     │                              │
-│  │  :8080        │                              │
-│  └───────────────┘                              │
-└─────────────────────────────────────────────────┘
-         ▲
-    localhost:29092  ←  producers running on host
-```
-
-**Two Kafka listeners:**
-- `kafka:9092` — used by Spark notebooks inside the Docker network
-- `localhost:29092` — used by producer scripts running on your laptop
+| Kafka broker | http://localhost:29092 | Bootstrap server for producers |
+| JupyterLab | http://localhost:8888 | Local notebook server |
 
 ---
 
 ## Notebooks
 
-| File | Producer | Transport | Topic |
-|------|----------|-----------|-------|
-| [01_setup_tables.ipynb](01_setup_tables.ipynb) | — | — | Load CSV into Iceberg, Delta Lake, Parquet |
-| [02_streaming_to_iceberg.ipynb](02_streaming_to_iceberg.ipynb) | `producer.py` | **File** (`./app/data/streaming_input/`) | File-based Structured Streaming → Iceberg |
-| [03_query_iceberg.ipynb](03_query_iceberg.ipynb) | — | — | Time travel, snapshots, schema evolution |
-| [04_sales_streaming_to_iceberg.ipynb](04_sales_streaming_to_iceberg.ipynb) | `sales_producer.py` | **Kafka** (`sales-events`) | Kafka stream-static join (customer enrichment) → Iceberg |
-
 Run notebooks in order: **01 → 02 → 04 → 03**.
 
+| File | Producer | Description |
+|------|----------|-------------|
+| `01_setup_tables` | — | Load CSV into Iceberg, Delta Lake, Parquet |
+| `02_streaming_to_iceberg` | `make producer` | File-based Structured Streaming → Iceberg |
+| `03_query_iceberg` | — | Time travel, snapshots, cross-table analysis |
+| `04_sales_streaming_to_iceberg` | `make sales-producer` | Kafka stream + customer enrichment → Iceberg |
+
 ---
 
-## Running the Producers
-
-### `producer.py` — file-based (notebook 02)
-
-Writes 2-row JSONL files to `./app/data/streaming_input/` every 10 s.  
-No Kafka required.
+## Make Targets
 
 ```bash
-uv run python producer.py
-```
-
-### `sales_producer.py` — Kafka-based (notebook 04)
-
-Publishes sale events to Kafka topic `sales-events` every 10 s.  
-Requires Kafka running first (see [start-kafka.sh](start-kafka.sh) or `docker compose up`).
-
-```bash
-# host machine (Kafka on localhost:9092 after start-kafka.sh)
-uv run python sales_producer.py
-
-# or override broker address
-KAFKA_BOOTSTRAP_SERVERS=localhost:9092 uv run python sales_producer.py
-
-# inside Docker (broker reachable as kafka:9092)
-KAFKA_BOOTSTRAP_SERVERS=kafka:9092 uv run python sales_producer.py
+make help             # Show all commands
+make up               # Start Docker services
+make down             # Stop Docker services
+make restart          # Restart everything
+make logs             # Tail service logs
+make status           # Show service status
+make jupyter          # Start local JupyterLab
+make producer         # Start file-based event producer
+make sales-producer   # Start Kafka sales event producer
+make clean            # Remove generated data
+make clean-all        # Remove data + Docker volumes
 ```
 
 ---
 
-## Spark Catalogs
+## Configuration
+
+All configuration is in three places:
+
+| File | Purpose |
+|------|---------|
+| `.env` | Environment variables (ports, Spark remote URL, Kafka address) |
+| `conf/spark-defaults.conf` | Spark server config (catalogs, memory, packages) |
+| `conf/log4j2.properties` | Logging levels |
+
+### Spark Catalogs
 
 | Catalog | Format | Warehouse path |
 |---------|--------|----------------|
-| `iceberg_catalog` | Apache Iceberg | `.tmp/local_iceberg_warehouse` |
+| `iceberg_catalog` (default) | Apache Iceberg | `.tmp/local_iceberg_warehouse` |
 | `spark_catalog` | Delta Lake | `.tmp/local_delta_warehouse` |
-
-`iceberg_catalog` is the default. Example:
-```sql
--- Iceberg (default catalog)
-SELECT * FROM my_database.user_events;
-
--- Delta (explicit catalog)
-SELECT * FROM spark_catalog.default.orders_delta;
-```
-
----
-
-## Local Development (without Docker)
-
-If you prefer running Spark locally:
-
-```bash
-uv sync
-./start-spark.sh    # creates .tmp folders, starts History Server + JupyterLab
-```
-
-For Kafka-based notebooks (04), also start Kafka in another terminal:
-```bash
-./start-kafka.sh    # formats storage + starts broker on localhost:9092
-```
 
 ---
 
@@ -153,21 +127,59 @@ For Kafka-based notebooks (04), also start Kafka in another terminal:
 
 ```
 spark-dev/
-├── docker-compose.yml          # Kafka + Kafka UI + JupyterLab services
-├── DockerFile                  # Custom Spark + JupyterLab image
-├── start-spark.sh              # Local: creates dirs + History Server + JupyterLab
-├── start-kafka.sh              # Local: formats + starts Kafka broker (KRaft)
-├── spark_conf/
-│   └── spark-defaults.conf     # Iceberg, Delta, Kafka packages + catalog config
-├── app/data/
-│   ├── source/
-│   │   ├── customers.csv       # Static reference data (20 customers)
-│   │   └── orders.csv          # Sample orders for notebook 01
-│   └── streaming_input/        # producer.py writes JSONL here (auto-created)
-├── producer.py                 # File-based producer → ./app/data/streaming_input/
-├── sales_producer.py           # Kafka producer → sales-events topic
-├── 01_setup_tables.ipynb
-├── 02_streaming_to_iceberg.ipynb
-├── 03_query_iceberg.ipynb
-└── 04_sales_streaming_to_iceberg.ipynb
+├── docker-compose.yml          # Docker services
+├── Dockerfile                  # Spark Connect Server image
+├── Makefile                    # Dev workflow commands
+├── .env                        # Environment variables
+├── .env.example                # Template for .env
+├── conf/
+│   ├── spark-defaults.conf     # Spark config (catalogs, packages, memory)
+│   └── log4j2.properties       # Logging config
+├── scripts/
+│   └── docker-entrypoint.sh    # Container entrypoint (connect/history modes)
+├── start-local.sh              # Start local JupyterLab
+├── app/
+│   ├── utils/
+│   │   ├── spark_session.py    # Spark session helper (Connect/local)
+│   │   ├── producer.py         # File-based event producer
+│   │   └── sales_producer.py   # Kafka sales event producer
+│   ├── data/
+│   │   └── source/             # Static reference data (CSV)
+│   └── notebooks/              # Jupyter notebooks (01–04)
+├── pyproject.toml              # Python dependencies
+└── .tmp/                       # Generated data (gitignored)
 ```
+
+---
+
+## How Spark Connect Works
+
+Instead of each notebook starting its own Spark instance:
+
+```
+Before:  Notebook 1 → local Spark (port 4040)
+         Notebook 2 → local Spark (port 4041)
+         Notebook 3 → local Spark (port 4042)
+
+After:   Notebook 1 ─┐
+         Notebook 2 ──┼── sc://localhost:15002 → Spark Connect Server (port 4040)
+         Notebook 3 ─┘
+```
+
+All notebooks share one Spark engine. One Spark UI shows all DAGs.
+
+---
+
+## Troubleshooting
+
+**Spark Connect not starting?**
+```bash
+docker compose logs spark-connect    # Check logs
+make restart                         # Restart everything
+```
+
+**First startup is slow?**
+The first `make up` downloads Spark JARs (Iceberg, Delta, Kafka). These are cached in a Docker volume (`spark-dev-ivy-cache`) for subsequent starts.
+
+**Port conflict?**
+Edit `.env` to change any port, then `make restart`.

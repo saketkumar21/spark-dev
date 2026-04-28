@@ -1,40 +1,43 @@
-# ── Base image: Spark 4.0.2 with Scala 2.13, Java 17, Python 3, Ubuntu ──────
+# =============================================================================
+# Spark Connect Server + History Server
+# Base: Apache Spark 4.0.2 with Scala 2.13, Java 17, Python 3, Ubuntu
+# =============================================================================
 FROM spark:4.0.2-scala2.13-java17-python3-ubuntu
 
-# System utilities
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+USER root
 
-# ── uv — fast Python package manager ────────────────────────────────────────
+# System utilities
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl procps netcat-openbsd && \
+    rm -rf /var/lib/apt/lists/*
+
+# uv — fast Python package manager
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-# ── Python dependencies ──────────────────────────────────────────────────────
-# Copy only the dependency manifest first so Docker can cache this layer
-COPY pyproject.toml ./
-RUN uv sync
+# Python dependencies (cached layer — only rebuilds when manifests change)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen 2>/dev/null || uv sync
 
-# ── Spark configuration ──────────────────────────────────────────────────────
-# Copies spark-defaults.conf so every SparkSession picks up Iceberg/Delta/Kafka
-# packages and catalog settings automatically — no extra code in notebooks needed
-COPY spark_conf/spark-defaults.conf /opt/spark/conf/spark-defaults.conf
+# Spark configuration
+COPY conf/spark-defaults.conf /opt/spark/conf/spark-defaults.conf
+COPY conf/log4j2.properties /opt/spark/conf/log4j2.properties
 
-# ── Ports (8888=JupyterLab, 4040/4041=Spark UI, 18080=History Server) ────────
-EXPOSE 8888 4040 4041 18080
+# Entrypoint
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# ── Start JupyterLab ─────────────────────────────────────────────────────────
-# Token/password disabled so the browser opens immediately (learning environment)
-CMD ["bash", "-c", \
-     "mkdir -p /app/.tmp/spark-events && \
-      uv run jupyter lab \
-        --ip=0.0.0.0 \
-        --port=8888 \
-        --allow-root \
-        --no-browser \
-        --ServerApp.token='' \
-        --ServerApp.password=''"]
+# Create required directories
+RUN mkdir -p .tmp/spark-events .tmp/local_iceberg_warehouse .tmp/local_delta_warehouse \
+             .tmp/checkpoint_user_events .tmp/checkpoint_sales_enriched \
+             app/data/streaming_input logs /opt/spark/logs
 
+# Copy project files
+COPY . .
 
-# Default command: Start the Connect Server
-# We bind to 0.0.0.0 so it's accessible outside the container
-CMD ["/opt/spark/sbin/start-connect-server.sh", "--conf", "spark.driver.bindAddress=0.0.0.0"]
+# Ports: 15002=Spark Connect, 4040=Spark UI, 18080=History Server
+EXPOSE 15002 4040 18080
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["connect"]
