@@ -1,4 +1,5 @@
-.PHONY: help up down restart logs jupyter jupyter-stop producer sales-producer clean status build
+.PHONY: help up down restart logs jupyter jupyter-stop producer sales-producer clean status build \
+       dbt-build dbt-debug
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -55,12 +56,20 @@ sales-producer: ## Start Kafka sales event producer
 	@set -a && [ -f .env ] && . ./.env && set +a && \
 	uv run python app/utils/sales_producer.py
 
+# ── dbt (convenience — or: cd dbt && source ../.env && dbt <cmd>) ───────────
+
+dbt-build: ## Full dbt pipeline: seed + run + test
+	@set -a && [ -f .env ] && . ./.env && set +a && \
+	cd dbt && uv run dbt build --profiles-dir .
+
+dbt-debug: ## Verify dbt connection to Spark Thrift Server
+	@set -a && [ -f .env ] && . ./.env && set +a && \
+	cd dbt && uv run dbt debug --profiles-dir .
+
 # ── Maintenance ─────────────────────────────────────────────────────────────
 
 clean: ## Remove generated data (warehouses, checkpoints, events)
-	rm -rf .tmp/local_iceberg_warehouse .tmp/local_delta_warehouse \
-	       .tmp/local_parquet_warehouse .tmp/spark-events \
-	       .tmp/checkpoint_* app/data/streaming_input/*.json
+	rm -rf .tmp app/data/streaming_input/*.json
 	@echo "Cleaned generated data. Run notebooks to regenerate."
 
 clean-all: clean ## Remove all generated data + Docker volumes

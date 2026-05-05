@@ -1,6 +1,16 @@
 .tmp/
 .venv/
 .claude/
+.git/
+.idea/
+.vscode/
 .ipynb_checkpoints/
 
 logs/
+
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+dbt-spark-qualify/build/
+dbt-spark-qualify/*.egg-info

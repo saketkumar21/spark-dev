@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: >
+      Customer dimension table enriched with regional grouping,
+      tier ranking, and tenure segmentation. Materialized as an
+      Iceberg table for ACID guarantees and time-travel queries.
+    columns:
+      - name: customer_id
+        description: "Primary key."
+        data_tests:
+          - unique
+          - not_null
+      - name: full_name
+        description: "Customer full name."
+        data_tests:
+          - not_null
+      - name: email
+        description: "Customer email."
+        data_tests:
+          - unique
+          - not_null
+      - name: region
+        description: "Geographic region derived from state."
+        data_tests:
+          - accepted_values:
+              values: ["West", "South", "Northeast", "Midwest", "Other"]
+      - name: membership_tier
+        description: "Loyalty program tier (lowercased)."
+        data_tests:
+          - not_null
+      - name: tier_rank
+        description: "Numeric rank of membership tier (1=bronze, 4=platinum)."
+        data_tests:
+          - not_null
+      - name: tenure_segment
+        description: "Customer tenure bucket based on join date."
+        data_tests:
+          - accepted_values:
+              values: ["new", "established", "loyal", "veteran"]
+      - name: _loaded_at
+        description: "Timestamp when this row was last materialized by dbt."

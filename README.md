@@ -1,35 +1,36 @@
 # Spark Dev — Learning Repo
 
-A Docker-based environment for learning **Apache Spark**, **Iceberg**, **Delta Lake**, and **Kafka Structured Streaming** — with a unified **Spark Connect Server** so every notebook shares one Spark UI.
+A Docker-based environment for **Apache Spark**, **Iceberg**, **Delta Lake**, **Kafka Structured Streaming**, and **dbt** — with a unified Spark server so notebooks and dbt jobs share one Spark UI.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  docker compose                                         │
-│                                                         │
-│  ┌──────────────────┐   ┌────────────────────────────┐  │
-│  │  kafka            │   │  spark-connect             │  │
-│  │  bitnami/kafka:3.9│◄──│  Spark 4.0.2 Connect Server│  │
-│  │  :9092 (internal) │   │  :15002 (gRPC)             │  │
-│  │  :29092 (external)│   │  :4040  (Spark UI)         │  │
-│  └────────┬──────────┘   └────────────────────────────┘  │
-│           │                                              │
-│  ┌────────▼──────────┐   ┌────────────────────────────┐  │
-│  │  kafka-ui          │   │  spark-history             │  │
-│  │  :8080             │   │  :18080                    │  │
-│  └───────────────────┘   └────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-         ▲                          ▲
-    localhost:29092            sc://localhost:15002
-    (producers on host)       (notebooks on host)
+┌───────────────────────────────────────────────────────────────┐
+│  docker compose                                               │
+│                                                               │
+│  ┌──────────────────┐   ┌──────────────────────────────────┐  │
+│  │  kafka            │   │  spark-connect                   │  │
+│  │  apache/kafka     │◄──│  Spark 4.0.2 Unified Server     │  │
+│  │  :9092 (internal) │   │  :10000 (Thrift JDBC — dbt)     │  │
+│  │  :29092 (external)│   │  :15002 (Connect gRPC — notebooks)│ │
+│  └────────┬──────────┘   │  :4040  (Spark UI)              │  │
+│           │              └──────────────────────────────────┘  │
+│  ┌────────▼──────────┐   ┌──────────────────────────────────┐  │
+│  │  kafka-ui          │   │  spark-history                   │  │
+│  │  :8080             │   │  :18080                          │  │
+│  └───────────────────┘   └──────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────────┘
+         ▲                          ▲                ▲
+    localhost:29092         sc://localhost:15002   jdbc:hive2://localhost:10000
+    (producers)            (notebooks)            (dbt)
 ```
 
-**Key design:** JupyterLab runs **locally on your machine** (not in Docker).  
-Notebooks connect to the Spark Connect Server via `sc://localhost:15002`.  
-All Spark jobs appear in **one unified Spark UI** at `http://localhost:4040`.
+**Key design:**
+- Notebooks connect via **Spark Connect** (`sc://localhost:15002`)
+- dbt connects via **Thrift Server** (`jdbc:hive2://localhost:10000`)
+- Both share the **same SparkContext** — all jobs appear in one Spark UI at `http://localhost:4040`
 
 ---
 
@@ -49,7 +50,7 @@ git clone <repo-url> spark-dev && cd spark-dev
 # 2. Install Python dependencies locally
 uv sync
 
-# 3. Start Docker services (Spark Connect + Kafka + History Server)
+# 3. Start Docker services (Spark + Kafka + History Server)
 make up
 
 # 4. Start JupyterLab locally
@@ -65,11 +66,55 @@ make jupyter
 | Service | URL | Description |
 |---------|-----|-------------|
 | Spark Connect | `sc://localhost:15002` | gRPC endpoint for notebooks |
-| Spark UI | http://localhost:4040 | Unified DAG view for all notebooks |
+| Spark Thrift | `jdbc:hive2://localhost:10000` | JDBC endpoint for dbt |
+| Spark UI | http://localhost:4040 | Unified DAG view for all jobs |
 | History Server | http://localhost:18080 | Completed Spark applications |
 | Kafka UI | http://localhost:8080 | Topic browser, message inspector |
 | Kafka broker | http://localhost:29092 | Bootstrap server for producers |
 | JupyterLab | http://localhost:8888 | Local notebook server |
+
+---
+
+## dbt
+
+dbt-core is integrated via the Spark Thrift Server. All dbt jobs appear in the same Spark UI alongside notebook jobs.
+
+### Usage
+
+```bash
+cd dbt
+source .env
+dbt run -s stg_customers       # run a single model
+dbt build                      # seed + run + test (full pipeline)
+dbt test -s dim_customers      # test a specific model
+```
+
+### Project Structure
+
+```
+dbt/
+├── dbt_project.yml            # Project config
+├── profiles.yml               # Connection config (Thrift → localhost:10000)
+├── .env                       # Source this for direct dbt usage
+├── seeds/
+│   └── customers.csv          # Raw customer data
+├── models/
+│   ├── staging/
+│   │   ├── stg_customers.sql  # Cleaned + typed customer data
+│   │   └── _staging__models.yml
+│   └── marts/
+│       ├── dim_customers.sql  # Customer dimension (regions, tiers, tenure)
+│       └── _marts__models.yml
+└── macros/
+    └── generate_schema_name.sql
+```
+
+### Models
+
+| Model | Layer | Materialized | Description |
+|-------|-------|--------------|-------------|
+| `stg_customers` | staging | view | Cleaned customer data with typed dates and tenure |
+| `dim_customers` | marts | table | Enriched with region, tier rank, tenure segment |
 
 ---
 
@@ -98,6 +143,8 @@ make status           # Show service status
 make jupyter          # Start local JupyterLab
 make producer         # Start file-based event producer
 make sales-producer   # Start Kafka sales event producer
+make dbt-build        # Run full dbt pipeline (seed + run + test)
+make dbt-debug        # Verify dbt connection
 make clean            # Remove generated data
 make clean-all        # Remove data + Docker volumes
 ```
@@ -106,20 +153,19 @@ make clean-all        # Remove data + Docker volumes
 
 ## Configuration
 
-All configuration is in three places:
-
 | File | Purpose |
 |------|---------|
-| `.env` | Environment variables (ports, Spark remote URL, Kafka address) |
-| `conf/spark-defaults.conf` | Spark server config (catalogs, memory, packages) |
+| `.env` | Ports, Spark remote URL, Kafka address, dbt connection vars |
+| `conf/spark-defaults.conf` | Spark server config (catalogs, memory, extensions) |
 | `conf/log4j2.properties` | Logging levels |
+| `dbt/profiles.yml` | dbt connection config (uses env vars from `dbt/.env`) |
 
 ### Spark Catalogs
 
-| Catalog | Format | Warehouse path |
-|---------|--------|----------------|
-| `iceberg_catalog` (default) | Apache Iceberg | `.tmp/local_iceberg_warehouse` |
-| `spark_catalog` | Delta Lake | `.tmp/local_delta_warehouse` |
+| Catalog | Format | Default | Warehouse path |
+|---------|--------|---------|----------------|
+| `spark_catalog` | Delta Lake / Hive | Yes (dbt) | `.tmp/local_delta_warehouse` |
+| `iceberg_catalog` | Apache Iceberg | Notebooks use explicitly | `.tmp/local_iceberg_warehouse` |
 
 ---
 
@@ -128,16 +174,15 @@ All configuration is in three places:
 ```
 spark-dev/
 ├── docker-compose.yml          # Docker services
-├── Dockerfile                  # Spark Connect Server image
+├── Dockerfile                  # Spark Unified Server image
 ├── Makefile                    # Dev workflow commands
 ├── .env                        # Environment variables
 ├── .env.example                # Template for .env
 ├── conf/
-│   ├── spark-defaults.conf     # Spark config (catalogs, packages, memory)
+│   ├── spark-defaults.conf     # Spark config (catalogs, extensions, memory)
 │   └── log4j2.properties       # Logging config
 ├── scripts/
-│   └── docker-entrypoint.sh    # Container entrypoint (connect/history modes)
-├── start-local.sh              # Start local JupyterLab
+│   └── docker-entrypoint.sh    # Container entrypoint (Thrift+Connect / history)
 ├── app/
 │   ├── utils/
 │   │   ├── spark_session.py    # Spark session helper (Connect/local)
@@ -146,40 +191,43 @@ spark-dev/
 │   ├── data/
 │   │   └── source/             # Static reference data (CSV)
 │   └── notebooks/              # Jupyter notebooks (01–04)
+├── dbt/                        # dbt project (models, seeds, tests)
 ├── pyproject.toml              # Python dependencies
 └── .tmp/                       # Generated data (gitignored)
 ```
 
 ---
 
-## How Spark Connect Works
+## How the Unified Server Works
 
-Instead of each notebook starting its own Spark instance:
+The Docker container runs **one Spark application** that exposes two interfaces:
 
 ```
-Before:  Notebook 1 → local Spark (port 4040)
-         Notebook 2 → local Spark (port 4041)
-         Notebook 3 → local Spark (port 4042)
-
-After:   Notebook 1 ─┐
-         Notebook 2 ──┼── sc://localhost:15002 → Spark Connect Server (port 4040)
-         Notebook 3 ─┘
+dbt ─────────── Thrift (JDBC :10000) ──┐
+                                        ├── Same SparkContext → Spark UI :4040
+Notebooks ───── Connect (gRPC :15002) ─┘
 ```
 
-All notebooks share one Spark engine. One Spark UI shows all DAGs.
+This is achieved by starting the Spark **Thrift Server** (`HiveServer2`) with the **Spark Connect plugin** enabled in the same JVM. JARs (Iceberg, Delta, Kafka) are pre-installed in the Docker image for fast startup and classloader compatibility.
 
 ---
 
 ## Troubleshooting
 
-**Spark Connect not starting?**
+**Spark not starting?**
 ```bash
 docker compose logs spark-connect    # Check logs
 make restart                         # Restart everything
 ```
 
-**First startup is slow?**
-The first `make up` downloads Spark JARs (Iceberg, Delta, Kafka). These are cached in a Docker volume (`spark-dev-ivy-cache`) for subsequent starts.
+**dbt can't connect?**
+```bash
+# Verify the Thrift port is open
+nc -z localhost 10000 && echo OK
+
+# Check dbt config
+cd dbt && source .env && dbt debug
+```
 
 **Port conflict?**
 Edit `.env` to change any port, then `make restart`.

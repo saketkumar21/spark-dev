@@ -1,0 +1,28 @@
+name: spark_dev
+version: "1.0.0"
+config-version: 2
+
+profile: spark_dev
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+seeds:
+  spark_dev:
+    +schema: seeds
+    +full_refresh: true
+    # +file_format: iceberg
+
+models:
+  spark_dev:
+    # +file_format: iceberg
+    +materialized: table
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +schema: marts

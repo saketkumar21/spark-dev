@@ -5,10 +5,17 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "dbt-core==1.11.0",
+    "dbt-spark[PyHive]>=1.9.0",
     "jupyterlab>=4.5.6",
     "kafka-python>=2.0.2",
     "pandas>=3.0.2",
     "pyspark-connect==4.0.2",
     "pyspark==4.0.2",
     "sparksql-magic>=0.0.3",
+    "sqlglot>=30.7.0",
+    "dbt-spark-qualify"
 ]
+
+[tool.uv.sources]
+dbt-spark-qualify = { path = "./dbt-spark-qualify" }

@@ -1,0 +1,13 @@
+spark_dev:
+  target: dev
+  outputs:
+    dev:
+      type: spark
+      method: thrift
+      host: "{{ env_var('DBT_SPARK_HOST', 'localhost') }}"
+      port: "{{ env_var('DBT_SPARK_PORT', '10000') | int }}"
+      user: spark
+      schema: analytics
+      connect_retries: 3
+      connect_timeout: 60
+      threads: 4

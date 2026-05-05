@@ -1,0 +1,35 @@
+version: 2
+
+seeds:
+  - name: customers
+    description: "Raw customer data loaded from CSV source system."
+    columns:
+      - name: customer_id
+        description: "Unique customer identifier (e.g., C001)."
+        data_tests:
+          - unique
+          - not_null
+      - name: name
+        description: "Full name of the customer."
+        data_tests:
+          - not_null
+      - name: email
+        description: "Customer email address."
+        data_tests:
+          - unique
+          - not_null
+      - name: phone
+        description: "Customer phone number."
+      - name: city
+        description: "City of residence."
+      - name: state
+        description: "US state abbreviation."
+      - name: membership_tier
+        description: "Loyalty program tier."
+        data_tests:
+          - accepted_values:
+              values: ["Bronze", "Silver", "Gold", "Platinum"]
+      - name: join_date
+        description: "Date the customer joined (YYYY-MM-DD)."
+        data_tests:
+          - not_null

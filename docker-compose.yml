@@ -3,7 +3,7 @@
 # =============================================================================
 #
 # Services:
-#   spark-connect  — Spark Connect Server (gRPC :15002, Spark UI :4040)
+#   spark-connect  — Spark Unified Server (Thrift :10000, gRPC :15002, UI :4040)
 #   spark-history  — Spark History Server (:18080)
 #   kafka          — Kafka broker (KRaft, :29092 external)
 #   kafka-ui       — Kafka topic browser (:8080)
@@ -13,13 +13,14 @@
 
 services:
 
-  # ── Spark Connect Server ──────────────────────────────────────────────────
+  # ── Spark Unified Server (Thrift + Connect in same JVM) ───────────────────
   spark-connect:
     build: .
     image: spark-dev:latest
     container_name: spark-connect
     ports:
       - "${SPARK_CONNECT_PORT:-15002}:15002"
+      - "${SPARK_THRIFT_PORT:-10000}:10000"
       - "${SPARK_UI_PORT:-4040}:4040"
     volumes:
       - .:/app
@@ -32,7 +33,7 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 15002 || exit 1"]
+      test: ["CMD-SHELL", "nc -z localhost 15002 && nc -z localhost 10000 || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 10

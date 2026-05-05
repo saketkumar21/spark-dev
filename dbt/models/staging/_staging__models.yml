@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: "Cleaned and typed customer data from the seed layer."
+    columns:
+      - name: customer_id
+        description: "Primary key — unique customer identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: full_name
+        description: "Customer full name."
+        data_tests:
+          - not_null
+      - name: email
+        description: "Customer email address."
+        data_tests:
+          - unique
+          - not_null
+      - name: phone
+        description: "Customer phone number."
+      - name: city
+        description: "City of residence."
+      - name: state
+        description: "US state abbreviation."
+      - name: membership_tier
+        description: "Lowercased loyalty tier."
+        data_tests:
+          - accepted_values:
+              values: ["bronze", "silver", "gold", "platinum"]
+      - name: joined_at
+        description: "Date customer joined, cast to DATE type."
+        data_tests:
+          - not_null
+      - name: tenure_days
+        description: "Number of days since the customer joined."

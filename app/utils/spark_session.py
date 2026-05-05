@@ -35,7 +35,7 @@ def _create_spark() -> SparkSession:
     session.conf.set("spark.sql.repl.eagerEval.maxNumRows", 20)
     session.conf.set("spark.sql.repl.eagerEval.truncate", 50)
 
-    # Fix: sparksql-magic checks _instantiatedSession which Spark Connect doesn't set
+    # Spark Connect doesn't set _instantiatedSession; some tools expect it
     SparkSession._instantiatedSession = session
 
     return session

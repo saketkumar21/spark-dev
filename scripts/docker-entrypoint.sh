@@ -6,32 +6,43 @@ cd /app
 # Create required directories
 mkdir -p .tmp/spark-events .tmp/local_iceberg_warehouse .tmp/local_delta_warehouse \
          .tmp/checkpoint_user_events .tmp/checkpoint_sales_enriched \
-         app/data/streaming_input logs
+         .tmp/metastore .tmp/spark-warehouse app/data/streaming_input logs
+
+# Pre-create Iceberg namespaces as directories (Hadoop catalog = filesystem).
+# Iceberg doesn't auto-create 'default', so Thrift clients would get SCHEMA_NOT_FOUND.
+mkdir -p .tmp/local_iceberg_warehouse/{default,analytics,staging,marts,seeds}
 
 MODE="${1:-connect}"
 
 case "$MODE" in
   connect)
-    echo "=== Starting Spark Connect Server ==="
-    echo "  gRPC port : ${SPARK_CONNECT_PORT:-15002}"
-    echo "  Spark UI  : http://localhost:4040"
+    echo "=== Starting Spark Unified Server (Thrift + Connect) ==="
+    echo "  Thrift JDBC : jdbc:hive2://localhost:${SPARK_THRIFT_PORT:-10000}"
+    echo "  Connect gRPC: sc://localhost:${SPARK_CONNECT_PORT:-15002}"
+    echo "  Spark UI    : http://localhost:4040"
+    echo ""
+    echo "Both dbt (via Thrift) and notebooks (via Connect) share the same"
+    echo "SparkContext — all jobs appear in a single Spark UI."
 
-    # Start connect server as daemon
-    $SPARK_HOME/sbin/start-connect-server.sh \
-      --conf "spark.connect.grpc.binding.port=${SPARK_CONNECT_PORT:-15002}" 2>&1
+    # Start Thrift Server (HiveServer2) as the primary process.
+    # Spark Connect is enabled via spark.plugins in spark-defaults.conf,
+    # so it starts automatically in the same JVM.
+    $SPARK_HOME/sbin/start-thriftserver.sh \
+      --conf "spark.connect.grpc.binding.port=${SPARK_CONNECT_PORT:-15002}" \
+      --conf "spark.hive.server2.thrift.port=${SPARK_THRIFT_PORT:-10000}" 2>&1
 
     sleep 5
 
     PID_FILE=$(ls /tmp/spark-*.pid 2>/dev/null | head -1)
 
     if [ -z "$PID_FILE" ]; then
-      echo "ERROR: Spark Connect Server failed to start. Logs:"
+      echo "ERROR: Spark Unified Server failed to start. Logs:"
       cat $SPARK_HOME/logs/*.out 2>/dev/null || true
       exit 1
     fi
 
     PID=$(cat "$PID_FILE")
-    echo "Spark Connect Server running (PID: $PID)"
+    echo "Spark Unified Server running (PID: $PID)"
 
     # Forward logs to stdout
     tail -F $SPARK_HOME/logs/*.out 2>/dev/null &
@@ -41,7 +52,7 @@ case "$MODE" in
       sleep 5
     done
 
-    echo "Spark Connect Server stopped unexpectedly"
+    echo "Spark Unified Server stopped unexpectedly"
     exit 1
     ;;
 

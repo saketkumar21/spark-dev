@@ -11,7 +11,7 @@ wheels/
 .python-version
 .env
 
-# Spark generated data
+# Spark generated data (all runtime artifacts live in .tmp/)
 .tmp/
 logs/
 
@@ -22,9 +22,21 @@ app/data/streaming_input/
 !app/data/source/
 !app/data/target/
 
+# dbt artifacts
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.env
+dbt/.user.yml
+
+# dbt-spark-qualify build artifacts
+dbt-spark-qualify/build/
+dbt-spark-qualify/*.egg-info
+
 # Jupyter checkpoints
 .ipynb_checkpoints/
 
+# Claude Code (session state)
 .claude/
 
 # IDE
