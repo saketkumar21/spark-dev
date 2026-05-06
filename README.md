@@ -1,6 +1,6 @@
 # Spark Dev — Learning Repo
 
-A Docker-based environment for **Apache Spark**, **Iceberg**, **Delta Lake**, **Kafka Structured Streaming**, and **dbt** — with a unified Spark server so notebooks and dbt jobs share one Spark UI.
+A Docker-based environment for **Apache Spark**, **Iceberg**, **Delta Lake**, **Kafka Structured Streaming**, **dbt**, and **Airflow** — with a unified Spark server so notebooks and dbt jobs share one Spark UI.
 
 ---
 
@@ -72,6 +72,7 @@ make jupyter
 | Kafka UI | http://localhost:8080 | Topic browser, message inspector |
 | Kafka broker | http://localhost:29092 | Bootstrap server for producers |
 | JupyterLab | http://localhost:8888 | Local notebook server |
+| Airflow | http://localhost:5000 | Local DAG scheduler & web UI (airflow/airflow) |
 
 ---
 
@@ -131,6 +132,34 @@ Run notebooks in order: **01 → 02 → 04 → 03**.
 
 ---
 
+## Airflow
+
+Airflow 3.1.7 runs locally via `uv` (separate venv in `airflow/`). It is independent of Docker services.
+
+### Usage
+
+```bash
+make airflow-up       # Start in background (webserver + scheduler + triggerer)
+make airflow-down     # Stop all Airflow processes
+make airflow-logs     # Tail standalone log
+make airflow-clean    # Wipe DB + logs for a fresh start
+```
+
+- **Web UI:** http://localhost:5000
+- **Login:** `airflow` / `airflow`
+- **DAGs folder:** `airflow/dags/`
+- **Logs:** `airflow/.airflow_home/logs/`
+- **Dependencies:** `airflow/pyproject.toml` (isolated from the main project)
+
+### First-time setup
+
+```bash
+cd airflow && uv sync    # Install Airflow + providers into airflow/.venv
+make airflow-up          # Initializes DB and starts all components
+```
+
+---
+
 ## Make Targets
 
 ```bash
@@ -143,6 +172,10 @@ make status           # Show service status
 make jupyter          # Start local JupyterLab
 make producer         # Start file-based event producer
 make sales-producer   # Start Kafka sales event producer
+make airflow-up       # Start Airflow locally (UI at :5000, airflow/airflow)
+make airflow-down     # Stop Airflow
+make airflow-logs     # Tail Airflow logs
+make airflow-clean    # Stop + wipe Airflow state (fresh start)
 make dbt-build        # Run full dbt pipeline (seed + run + test)
 make dbt-debug        # Verify dbt connection
 make clean            # Remove generated data
@@ -159,6 +192,8 @@ make clean-all        # Remove data + Docker volumes
 | `conf/spark-defaults.conf` | Spark server config (catalogs, memory, extensions) |
 | `conf/log4j2.properties` | Logging levels |
 | `dbt/profiles.yml` | dbt connection config (uses env vars from `dbt/.env`) |
+| `airflow/pyproject.toml` | Airflow dependencies (separate uv project) |
+| `airflow/passwords.json` | Airflow local auth credentials |
 
 ### Spark Catalogs
 
@@ -173,7 +208,7 @@ make clean-all        # Remove data + Docker volumes
 
 ```
 spark-dev/
-├── docker-compose.yml          # Docker services
+├── docker-compose.yml          # Docker services (Spark, Kafka)
 ├── Dockerfile                  # Spark Unified Server image
 ├── Makefile                    # Dev workflow commands
 ├── .env                        # Environment variables
@@ -191,6 +226,10 @@ spark-dev/
 │   ├── data/
 │   │   └── source/             # Static reference data (CSV)
 │   └── notebooks/              # Jupyter notebooks (01–04)
+├── airflow/                    # Airflow project (separate uv env)
+│   ├── pyproject.toml          # Airflow + provider dependencies
+│   ├── passwords.json          # Local auth (airflow/airflow, role: admin)
+│   └── dags/                   # DAG definitions
 ├── dbt/                        # dbt project (models, seeds, tests)
 ├── pyproject.toml              # Python dependencies
 └── .tmp/                       # Generated data (gitignored)

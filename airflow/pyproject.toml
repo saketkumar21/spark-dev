@@ -1,0 +1,13 @@
+[project]
+name = "prodrat-dags"
+version = "0.1.0"
+description = "Airflow DAG dependencies for local development"
+requires-python = ">=3.12"
+
+dependencies = [
+    "apache-airflow==3.1.7",
+    "apache-airflow-providers-amazon>=9.27.0",
+    "apache-airflow-providers-cncf-kubernetes>=10.16.1",
+    "astronomer-cosmos",
+    "pyyaml",
+]

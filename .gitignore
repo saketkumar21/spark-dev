@@ -33,6 +33,9 @@ dbt/.user.yml
 dbt-spark-qualify/build/
 dbt-spark-qualify/*.egg-info
 
+# Airflow runtime (logs, db, etc.)
+airflow/.airflow_home/
+
 # Jupyter checkpoints
 .ipynb_checkpoints/
 
