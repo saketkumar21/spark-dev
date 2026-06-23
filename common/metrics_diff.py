@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import urllib.request
 from typing import Callable
@@ -70,6 +71,12 @@ def _task_summary(base: str, app_id: str, stage_id: int, attempt_id: int) -> dic
 
 # ── measurement ────────────────────────────────────────────────────────────────
 
+def _tag_safe(label: str) -> str:
+    """Make a label safe to use as a Spark job tag (alphanumeric / dash / underscore)."""
+    tag = re.sub(r"[^A-Za-z0-9_-]+", "-", label).strip("-")
+    return tag or "step"
+
+
 def measure(spark, label: str, fn: Callable[[], object]) -> dict:
     """Run ``fn`` (an action), capturing the stage metrics it produced.
 
@@ -91,12 +98,31 @@ def measure(spark, label: str, fn: Callable[[], object]) -> dict:
     except Exception as exc:  # noqa: BLE001 — degrade gracefully, never block the lesson
         print(f"[metrics_diff] UI REST API unavailable ({exc}); reporting wall-clock only.")
 
+    # Tag this step's jobs so they're findable in the Spark UI **Jobs** tab (filter by the
+    # tag). Over Spark Connect the SQL/Jobs "Description" is the serialized plan and can't be
+    # set by the client, so a job tag is the only label handle available.
+    tag = _tag_safe(label)
+    tagged = False
+    try:
+        spark.addTag(tag)
+        tagged = True
+    except Exception:  # noqa: BLE001 — tagging is best-effort, never block measurement
+        pass
+
     t0 = time.perf_counter()
-    fn()
+    try:
+        fn()
+    finally:
+        if tagged:
+            try:
+                spark.removeTag(tag) if hasattr(spark, "removeTag") else spark.clearTags()
+            except Exception:  # noqa: BLE001
+                pass
     runtime_s = time.perf_counter() - t0
 
     metrics = {
         "label": label,
+        "tag": tag,
         "runtime_s": round(runtime_s, 2),
         "num_tasks": None,
         "shuffle_read_bytes": None,
@@ -132,7 +158,11 @@ def measure(spark, label: str, fn: Callable[[], object]) -> dict:
         # data (fallback: the most tasks). Read its per-task time distribution.
         heavy = max(
             new_stages,
-            key=lambda s: (s.get("shuffleReadBytes", 0), s.get("numTasks", 0)),
+            key=lambda s: (
+                s.get("shuffleReadBytes", 0),
+                s.get("memoryBytesSpilled", 0),
+                s.get("numTasks", 0),
+            ),
         )
         try:
             ts = _task_summary(base, app_id, heavy["stageId"], heavy.get("attemptId", 0))
@@ -224,6 +254,14 @@ def compare(results: list[dict]) -> None:
     for name, key, kind in _ROWS:
         cells = [name] + [_fmt(r.get(key), kind) for r in results]
         print(_row(cells))
+
+    # The SQL-tab Description is unreadable over Spark Connect (it's the serialized plan),
+    # so point the learner at the Jobs tab, where each run is filterable by its measure() tag.
+    tags = [(r.get("label"), r.get("tag")) for r in results if r.get("tag")]
+    if tags:
+        print("\nFind each run in the Spark UI → Jobs tab → filter by tag:")
+        for lbl, tg in tags:
+            print(f"  {lbl:<28} tag: {tg}")
 
 
 def diff(before: dict, after: dict) -> None:

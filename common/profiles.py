@@ -93,9 +93,21 @@ def apply_profile(spark, name: str, **overrides: object) -> dict[str, str]:
 
 
 def profile_summary(spark, keys: list[str] | None = None) -> dict[str, str]:
-    """Print and return the session knobs currently in effect (for module narration)."""
+    """Print and return the session knobs currently in effect (for module narration).
+
+    Reads each key defensively. Byte-typed driver confs (e.g. ``spark.driver.memory``,
+    ``spark.driver.maxResultSize``) are not always set in the Connect session, and passing
+    a non-numeric default into ``spark.conf.get(key, default)`` makes the Connect server try
+    to parse that default as a byte string (``NumberFormatException: ... <unset>``). So we
+    call ``spark.conf.get(key)`` with no default and substitute ``"<unset>"`` in Python.
+    """
     keys = keys or _SUMMARY_KEYS
-    current = {k: spark.conf.get(k, "<unset>") for k in keys}
+    current: dict[str, str] = {}
+    for key in keys:
+        try:
+            current[key] = spark.conf.get(key)
+        except Exception:  # noqa: BLE001 — unset/typed conf or transient; never break narration
+            current[key] = "<unset>"
     print("Current session knobs:")
     for key, value in current.items():
         print(f"  {key:<48} = {value}")
