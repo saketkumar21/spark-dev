@@ -50,7 +50,8 @@ Start with [`docs/CURRICULUM_BRIEF.md`](docs/CURRICULUM_BRIEF.md) and
 - **Tracks** (each a self-contained module folder following Break→Detect→Fix→Prove):
   - [`spark/`](spark/README.md) — **Phase 1 ✅ complete** · `SPK-1…SPK-10` (skew, executor/driver OOM, spill, joins, AQE, pruning, caching, shuffle, internals)
   - [`iceberg/`](iceberg/README.md) — **Phase 2 ✅ complete** · `LAK-1…LAK-10` (formats, small files, snapshots, orphans, manifests, schema evo, partitioning, MERGE, time travel, internals)
-  - `kafka/` · `debezium/` · `quality/` · `airflow/` — Phases 3–6 (planned)
+  - [`kafka/`](kafka/README.md) — **Phase 3 ✅ complete** · `KAF-1…KAF-6` + `STR-1…STR-3` (hot partitions, consumer lag, rebalancing, retention/compaction, delivery semantics, poison-pill/dead-letter, watermarking, checkpoints, backpressure)
+  - `debezium/` · `quality/` · `airflow/` — Phases 4–6 (planned)
 - **Guides**: [`docs/spark-ui-guide.md`](docs/spark-ui-guide.md) (symptom → which UI tab) and
   [`docs/troubleshooting.md`](docs/troubleshooting.md) (symptom → cause → fix).
 
@@ -249,8 +250,10 @@ spark-dev/
 │   ├── profiles.py             # constrained vs tuned session profiles
 │   ├── datagen.py              # synthetic data generators (skew knob)
 │   └── metrics_diff.py         # before/after metrics tables
-├── spark/                      # Phase 1: Spark performance pathologies (SPK-1 skew flagship)
-├── iceberg/ kafka/ quality/ debezium/   # Phase 2–5 track signposts (built gradually)
+├── spark/                      # Phase 1 ✅ Spark performance pathologies (SPK-1 skew flagship)
+├── iceberg/                    # Phase 2 ✅ lakehouse / table-format correctness (LAK-1..10)
+├── kafka/                      # Phase 3 ✅ Kafka & Structured Streaming robustness (KAF-1..6, STR-1..3)
+├── quality/ debezium/          # Phase 4–5 track signposts (built gradually)
 ├── docs/                       # curriculum brief/plan, spark-ui-guide, troubleshooting
 ├── app/
 │   ├── utils/

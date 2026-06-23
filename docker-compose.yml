@@ -85,6 +85,12 @@ services:
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      # Single-broker dev cluster: the transaction-state log defaults to RF=3 / min-ISR=2,
+      # which a lone broker can't satisfy — so any idempotent/transactional producer
+      # (`enable.idempotence=true`, used by KAF-5 delivery-semantics) hangs forever on
+      # initProducerId. Pin both to 1 so EOS producers work locally.
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
       - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
       - CLUSTER_ID=spark-dev-kafka-cluster-01
     healthcheck:

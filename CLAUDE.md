@@ -54,7 +54,8 @@ Each track is a self-contained top-level folder with its own README (Break→Det
 - `common/` — shared toolkit.
 - `spark/` — **Phase 1 ✅ complete**: `SPK-1…SPK-10` perf pathologies (skew flagship in `spark/skew/`).
 - `iceberg/` — **Phase 2 ✅ complete**: `LAK-1…LAK-10` lakehouse / table-format correctness.
-- `kafka/` (Phase 3), `debezium/` (Phase 4 CDC), `quality/` (Phase 5 dbt-tests + Great Expectations) — currently README **signposts**, built gradually.
+- `kafka/` — **Phase 3 ✅ complete**: `KAF-1…KAF-6` (partitioning, consumer lag, rebalancing, retention/compaction, delivery semantics, poison-pill/dead-letter) + `STR-1…STR-3` (watermarking, checkpoints/restart, backpressure). Reuses `common/kafka_helpers.py`; producers/admin on host `localhost:29092`, Spark reads `kafka:9092`, bounded `trigger(availableNow=True)` streams.
+- `debezium/` (Phase 4 CDC), `quality/` (Phase 5 dbt-tests + Great Expectations) — currently README **signposts**, built gradually.
 
 All built modules are verified end-to-end via headless `nbconvert` against the running server before commit. Modules are Connect-safe (DataFrame/SQL + `df.explain()`; no `sparkContext`/RDD) and laptop-safe (lazy/tiny data in `.tmp/`, teardown, `make clean`).
 
