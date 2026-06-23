@@ -28,8 +28,10 @@ case "$MODE" in
     # Start Thrift Server (HiveServer2) as the primary process.
     # Spark Connect is enabled via spark.plugins in spark-defaults.conf,
     # so it starts automatically in the same JVM.
-    # --master and driver.memory come from the resource profile, set by the
-    # SPARK_CORES / SPARK_DRIVER_MEMORY env vars (make up vs make up-constrained).
+    # --master and driver.memory come from the resource profile: the
+    # SPARK_CORES / SPARK_DRIVER_MEMORY env vars are sourced from
+    # conf/profiles/*.env and passed in by compose `--env-file`
+    # (make up → tuned.env vs make up-constrained → constrained.env).
     $SPARK_HOME/sbin/start-thriftserver.sh \
       --master "local[${SPARK_CORES:-*}]" \
       --conf "spark.driver.memory=${SPARK_DRIVER_MEMORY:-2g}" \

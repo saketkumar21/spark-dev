@@ -11,9 +11,13 @@
 # JupyterLab runs locally on the host:  make jupyter
 #
 # Resource profile (laptop safety): the spark-connect container is memory-capped
-# via SPARK_MEM_LIMIT and its driver heap via SPARK_DRIVER_MEMORY. Flip profiles with:
-#   make up              → tuned       (mem_limit 3g, driver 2g, all cores)
-#   make up-constrained  → constrained (mem_limit 2g, driver 1g, 2 cores) for OOM/spill modules
+# via SPARK_MEM_LIMIT and its driver heap via SPARK_DRIVER_MEMORY. The profile values
+# live in conf/profiles/{tuned,constrained}.env (single source of truth) and are
+# selected via compose `--env-file`. Flip profiles with:
+#   make up              → tuned       (conf/profiles/tuned.env)
+#   make up-constrained  → constrained (conf/profiles/constrained.env) for OOM/spill modules
+# The ${VAR:-default} fallbacks below are the defensive default for a bare
+# `docker compose up` with no profile selected.
 # Approx footprint of the rest: kafka ~1.2 GB, kafka-ui ~0.6 GB, history ~0.4 GB.
 # On an 8 GB laptop you can stop optional services (history, kafka-ui) while running
 # the heavier tracks. All generated data stays in .tmp/ (make clean recovers).

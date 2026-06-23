@@ -13,16 +13,16 @@ build: ## Build Docker images
 
 up: ## Start all Docker services — TUNED profile (~3 GB Spark; the default)
 	@mkdir -p .tmp/spark-events .tmp/local_iceberg_warehouse .tmp/local_delta_warehouse logs
-	docker compose up -d
+	docker compose --env-file .env --env-file conf/profiles/tuned.env up -d
 	@echo ""
-	@echo "  Spark profile : TUNED  (mem_limit=$${SPARK_MEM_LIMIT:-3g}, driver.memory=$${SPARK_DRIVER_MEMORY:-2g}, all cores)"
+	@echo "  Spark profile : TUNED       (conf/profiles/tuned.env)"
 	@$(MAKE) --no-print-directory _ports
 
 up-constrained: ## Start all Docker services — CONSTRAINED profile (~2 GB Spark, 2 cores; for OOM/spill modules)
 	@mkdir -p .tmp/spark-events .tmp/local_iceberg_warehouse .tmp/local_delta_warehouse logs
-	SPARK_MEM_LIMIT=2g SPARK_DRIVER_MEMORY=1g SPARK_CORES=2 docker compose up -d
+	docker compose --env-file .env --env-file conf/profiles/constrained.env up -d
 	@echo ""
-	@echo "  Spark profile : CONSTRAINED  (mem_limit=2g, driver.memory=1g, cores=2)"
+	@echo "  Spark profile : CONSTRAINED (conf/profiles/constrained.env)"
 	@echo "  Use this profile for the OOM / spill modules so failure is real but the host stays usable."
 	@$(MAKE) --no-print-directory _ports
 
