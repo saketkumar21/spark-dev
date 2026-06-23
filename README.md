@@ -42,12 +42,15 @@ Start with [`docs/CURRICULUM_BRIEF.md`](docs/CURRICULUM_BRIEF.md) and
 [`docs/CURRICULUM_PLAN.md`](docs/CURRICULUM_PLAN.md).
 
 - **Shared toolkit** in `common/`: `datagen` (synthesize skewed/wide data without storing it),
-  `metrics_diff` (before/after metric tables), `profiles` (constrained vs tuned), `spark_session`.
+  `metrics_diff` (before/after query-metric tables), `iceberg_meta` (table health: data-file /
+  snapshot / manifest counts), `profiles` (constrained vs tuned), `spark_session` (+ `reconnect()`).
 - **Resource profiles** (laptop-safe): `make up` runs a tuned ~3 GB Spark box; `make up-constrained`
   runs a ~2 GB box so OOM/spill are real but the host stays usable. Session-level safety nets
   (AQE, broadcast, shuffle partitions) flip per-notebook via `common.profiles.apply_profile()`.
-- **Tracks**: `spark/` (perf), `iceberg/`, `kafka/`, `debezium/`, `quality/` — each a self-contained
-  module folder. The flagship `SPK-1` (data skew) lives in `spark/skew/`.
+- **Tracks** (each a self-contained module folder following Break→Detect→Fix→Prove):
+  - [`spark/`](spark/README.md) — **Phase 1 ✅ complete** · `SPK-1…SPK-10` (skew, executor/driver OOM, spill, joins, AQE, pruning, caching, shuffle, internals)
+  - [`iceberg/`](iceberg/README.md) — **Phase 2 ✅ complete** · `LAK-1…LAK-10` (formats, small files, snapshots, orphans, manifests, schema evo, partitioning, MERGE, time travel, internals)
+  - `kafka/` · `debezium/` · `quality/` · `airflow/` — Phases 3–6 (planned)
 - **Guides**: [`docs/spark-ui-guide.md`](docs/spark-ui-guide.md) (symptom → which UI tab) and
   [`docs/troubleshooting.md`](docs/troubleshooting.md) (symptom → cause → fix).
 

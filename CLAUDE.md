@@ -33,10 +33,11 @@ executor — `spark.driver.memory` is effectively the whole heap.
 
 ### Shared toolkit — `common/`
 Importable from notebooks (host `PYTHONPATH` includes the repo root):
-- `common/spark_session.py` — Spark Connect session factory + `display_df()` (moved here from `app/utils/`).
+- `common/spark_session.py` — Spark Connect session factory + `display_df()`; `reconnect()`/`get_spark()` rebuild a dead session after a driver OOM (a stale Connect handle raises `[NO_ACTIVE_SESSION]`).
 - `common/profiles.py` — `apply_profile(spark, "constrained"|"tuned")`: the **session-level** safety-net switcher (AQE, skew-join, broadcast threshold, shuffle partitions).
 - `common/datagen.py` — `spark.range()`-based generators (uniform / **skewed** / wide / high-cardinality). Generate huge *logical* datasets without storing them; skew is deterministic & reproducible.
-- `common/metrics_diff.py` — `measure()` + `compare()`: capture stage metrics via the Spark UI REST API (Connect-safe) and print a **before/after** table. The "Prove it" step.
+- `common/metrics_diff.py` — `measure()` + `compare()`: capture stage metrics via the Spark UI REST API (Connect-safe) and print a **before/after** table; `measure()` also tags each step's jobs (`spark.addTag`) so the UI **Jobs tab** is filterable (the SQL Description can't be set over Connect). The "Prove it" for perf modules.
+- `common/iceberg_meta.py` — `table_health()` + `compare_health()`: Iceberg data-file / snapshot / manifest counts. The "Prove it" for the lakehouse track.
 
 ### Resource profiles — two layers
 The Spark Connect server's memory is fixed when the container boots; a Connect client can't
@@ -50,10 +51,12 @@ change the driver heap at runtime. So "constrained vs tuned" has two layers:
 
 ### Per-track layout (curriculum)
 Each track is a self-contained top-level folder with its own README (Break→Detect→Fix→Prove):
-`common/` (toolkit), `spark/` (Phase 1 perf pathologies — `SPK-1` skew flagship lives in
-`spark/skew/`), `iceberg/` (Phase 2), `kafka/` (Phase 3), `debezium/` (Phase 4 CDC),
-`quality/` (Phase 5 dbt-tests + Great Expectations). `iceberg/`/`kafka/`/`quality/`/`debezium/`
-are currently README **signposts** — built gradually, repo stays runnable at each step.
+- `common/` — shared toolkit.
+- `spark/` — **Phase 1 ✅ complete**: `SPK-1…SPK-10` perf pathologies (skew flagship in `spark/skew/`).
+- `iceberg/` — **Phase 2 ✅ complete**: `LAK-1…LAK-10` lakehouse / table-format correctness.
+- `kafka/` (Phase 3), `debezium/` (Phase 4 CDC), `quality/` (Phase 5 dbt-tests + Great Expectations) — currently README **signposts**, built gradually.
+
+All built modules are verified end-to-end via headless `nbconvert` against the running server before commit. Modules are Connect-safe (DataFrame/SQL + `df.explain()`; no `sparkContext`/RDD) and laptop-safe (lazy/tiny data in `.tmp/`, teardown, `make clean`).
 
 ### Curriculum docs — `docs/`
 `CURRICULUM_BRIEF.md`, `CURRICULUM_PLAN.md`, `spark-ui-guide.md` (symptom → which UI tab/metric),
@@ -135,9 +138,10 @@ Airflow 3 runs **locally** via `uv` (separate venv in `airflow/`), independent o
 ├── Makefile                make up (tuned) / up-constrained / jupyter / dbt-* / airflow-* / clean
 ├── conf/spark-defaults.conf  Catalogs, extensions, memory (driver 2g baseline), Thrift+Connect
 ├── scripts/docker-entrypoint.sh  Thrift+Connect (profile-aware) or History Server
-├── common/                 SHARED TOOLKIT: spark_session, profiles, datagen, metrics_diff
-├── spark/                  Phase 1 perf pathologies (SPK-1 skew flagship in spark/skew/)
-├── iceberg/ kafka/ quality/ debezium/   Phase 2–5 track signposts (built gradually)
+├── common/                 Shared toolkit: spark_session, profiles, datagen, metrics_diff, iceberg_meta
+├── spark/                  Phase 1 ✅ SPK-1..SPK-10 perf pathologies (skew flagship in spark/skew/)
+├── iceberg/                Phase 2 ✅ LAK-1..LAK-10 lakehouse / table-format correctness
+├── kafka/ debezium/ quality/   Phase 3–5 track signposts (built gradually)
 ├── docs/                   CURRICULUM_BRIEF, CURRICULUM_PLAN, spark-ui-guide, troubleshooting
 ├── app/
 │   ├── utils/
