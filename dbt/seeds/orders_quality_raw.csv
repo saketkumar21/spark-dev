@@ -1,0 +1,6 @@
+order_id,customer_id,amount,status,ordered_at
+2000,C001,50.00,completed,2024-03-05 10:00:00
+2001,C002,-9.99,completed,2024-03-05 11:00:00
+2002,C999,30.00,completed,2024-03-05 12:00:00
+2003,C003,20.00,shipped,2024-03-05 13:00:00
+2004,C004,75.00,completed,2024-03-05 14:00:00

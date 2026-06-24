@@ -1,0 +1,13 @@
+version: 2
+models:
+  - name: dim_orders_contract
+    description: "DBT-9: an enforced contract (column name+type). Adding/removing/retyping a column breaks the build."
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: order_id
+        data_type: bigint
+      - name: amount
+        data_type: double
+      - name: status
+        data_type: string

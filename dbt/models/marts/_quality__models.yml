@@ -1,0 +1,40 @@
+version: 2
+models:
+  - name: stg_orders_quality
+    description: "Raw quality-demo orders — contains deliberate bad rows for the testing labs."
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]          # STRUCTURAL tests belong at the staging layer
+      - name: status
+        data_tests:
+          - accepted_values:
+              values: ['completed', 'refunded', 'pending']
+              config:
+                severity: warn                   # WARN: flags the bad 'shipped' row but does NOT fail the build
+
+  - name: orders_clean
+    description: "Validated orders — BUSINESS-LOGIC tests must pass here (the quarantine guaranteed it)."
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+      - name: amount
+        data_tests:
+          - non_negative                          # custom GENERIC test (macros/test_non_negative.sql)
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100000
+      - name: status
+        data_tests:
+          - accepted_values:                      # ERROR severity (default) — passes because clean is clean
+              values: ['completed', 'refunded', 'pending']
+      - name: customer_id
+        data_tests:
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+
+  - name: orders_quarantine
+    description: "Rows that failed a quality rule, tagged with quarantine_reason."
+    columns:
+      - name: quarantine_reason
+        data_tests: [not_null]
