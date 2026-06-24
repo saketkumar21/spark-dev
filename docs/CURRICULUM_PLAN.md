@@ -70,7 +70,7 @@ Open-table-format internals and the maintenance debt that bites in production.
 
 | ID | Module | Scenario / what the learner breaks & fixes |
 |----|--------|--------------------------------------------|
-| `LAK-1` | **Format comparison** | Iceberg vs Delta vs Parquet (vs optional Hudi) on ACID, time-travel, schema evolution, upserts — extends current `01_setup_tables`. |
+| `LAK-1` | **Format comparison** | Iceberg vs Delta vs Parquet (vs optional Hudi) on ACID, time-travel, schema evolution, upserts. |
 | `LAK-2` | **Small files & compaction** | Streaming writes → hundreds of tiny files; query slows. Detect via `.files` metadata. Fix: Iceberg `rewrite_data_files`, Delta `OPTIMIZE`, target file size. |
 | `LAK-3` | **Snapshot growth & expiration** | Every write makes a snapshot → metadata bloat. Fix: `expire_snapshots`, retention props. |
 | `LAK-4` | **Orphan files & GC** | Failed/partial writes leave dangling files; storage grows. Fix: `remove_orphan_files`, `gc.*` props. |
@@ -85,7 +85,7 @@ Open-table-format internals and the maintenance debt that bites in production.
 
 # PHASE 3 — Kafka & Structured Streaming robustness
 
-Messaging fundamentals + streaming correctness. Builds on existing `sales_producer` / notebook 04.
+Messaging fundamentals + streaming correctness.
 
 | ID | Module | Scenario / what the learner breaks & fixes |
 |----|--------|--------------------------------------------|

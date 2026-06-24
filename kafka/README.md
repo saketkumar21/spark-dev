@@ -67,10 +67,3 @@ Each `kafka/<topic>/` holds a `README.md` (the Break→Detect→Fix→Prove writ
 Kafka-broker behavior (mostly `kafka-python`); the `STR-*` set is Spark Structured Streaming
 (`readStream`/`writeStream` → Iceberg). `STR-2` (exactly-once into Iceberg) and `KAF-5`
 (delivery guarantees) are the bridge to the Phase 4 CDC track.
-
-## Producers in `app/`
-
-The original [`app/utils/sales_producer.py`](../app/utils/sales_producer.py) (Kafka) and
-[`app/notebooks/04_sales_streaming_to_iceberg`](../app/notebooks/) remain as a worked
-end-to-end example; this track generalizes their patterns into the reusable
-[`common/kafka_helpers.py`](../common/kafka_helpers.py) used by every module above.

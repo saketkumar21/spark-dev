@@ -12,7 +12,7 @@
 - **Run against:** the unified Spark server + Kafka (`make up`). Producers talk to
   `localhost:29092`; Spark reads via `kafka:9092`. Inspect topics live in **kafka-ui** at
   http://localhost:8080.
-- **Time:** ~10 min. **Laptop-safe:** a few hundred bounded events, batch read (no infinite
+- **Time:** ~10 min. **Laptop-safe:** a bounded 3,000-event produce, batch read (no infinite
   stream), `delete_topic` teardown (`make clean` clears the rest).
 
 ---
@@ -30,8 +30,8 @@ falls steadily behind while the rest idle. You bought parallelism and got a sing
 Create `kaf1_orders` with **3 partitions** and produce events where 90% share the key `"HOT"`:
 
 ```python
-ensure_topic("kaf1_orders", num_partitions=3)
-produce_events("kaf1_orders", 300, key_fn=lambda i: "HOT" if i % 10 else f"cust-{i}")
+ensure_topic("kaf1_orders", num_partitions=3, recreate=True)
+produce_events("kaf1_orders", 3000, key_fn=lambda i: "HOT" if i % 10 else f"cust-{i}")
 ```
 
 `topic_end_offsets("kaf1_orders")` then shows one partition's offset far ahead of the other two —
@@ -56,10 +56,12 @@ Two views of the same skew:
 
 ## 5. Fix it — a high-cardinality key (or salt the hot one)
 
-Key by something that spreads evenly — here a per-customer id:
+Key by something that spreads evenly — here a per-customer id (recreate the topic first so the
+hot run's offsets don't carry over):
 
 ```python
-produce_events("kaf1_orders", 300, key_fn=lambda i: f"cust-{i}")
+ensure_topic("kaf1_orders", num_partitions=3, recreate=True)             # fresh topic
+produce_events("kaf1_orders", 3000, key_fn=lambda i: f"cust-{i % 300}")  # 300 distinct keys -> even spread
 ```
 
 If one key is *legitimately* hot, **salt** it (`key + "-" + rand(0..N)`) and merge downstream —
@@ -67,8 +69,16 @@ the same trick as SPK-1 salting.
 
 ## 6. Prove it
 
-`topic_end_offsets` after the rekey shows the events spread roughly evenly across the 3 partitions
-(≈100 each) instead of ≈270/15/15. Even partitions → even consumer load → no single laggard.
+`topic_end_offsets` before vs after the rekey — the notebook's `spread()` helper reduces each to
+its min/max and a **skew ratio = max ÷ min**:
+
+| State | per-partition (≈) | min | max | skew (max ÷ min) |
+|-------|-------------------|----:|----:|-----------------:|
+| dominant key `"HOT"` (broken) | one fat, two tiny | ~100 | ~2800 | **~28×** |
+| high-cardinality key (fixed) | ~1000 / ~1000 / ~1000 | ~1000 | ~1000 | **~1×** |
+
+(Exact counts vary with the hash.) The skew ratio collapsing from tens-of-× to ~1× is the proof:
+even partitions → even consumer load → no single laggard.
 
 ## 7. Takeaways & "in real production…"
 

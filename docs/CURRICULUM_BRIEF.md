@@ -142,8 +142,6 @@ that separate senior engineers. The full per-tool topic inventory is catalogued 
   ID). Remove or mask before this is shared.
 - **Fix `.gitignore`.** It currently ignores `airflow/dags/`, so the orchestration teaching layer
   isn't tracked. Track the new sanitized teaching DAGs.
-- **Fix notebook bugs.** `04_sales_streaming` uses `customers_df` before definition and uses `os`
-  without import; `03_query_iceberg` header references the old `01_csv_to_iceberg` name.
 - **Resolve doc drift.** README/CLAUDE.md vs. reality (Airflow, Parquet, `agg_customers`, Hudi
   shown as live but commented out).
 - **Remove cruft.** Committed `Untitled.ipynb` / `Spark DataFrame.ipynb`, stray `.ipynb_checkpoints/`,

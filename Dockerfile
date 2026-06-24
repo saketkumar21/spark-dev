@@ -48,9 +48,8 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Create required directories
 RUN mkdir -p .tmp/spark-events .tmp/local_iceberg_warehouse .tmp/local_delta_warehouse \
-             .tmp/checkpoint_user_events .tmp/checkpoint_sales_enriched \
              .tmp/metastore .tmp/spark-warehouse \
-             app/data/streaming_input logs /opt/spark/logs
+             logs /opt/spark/logs
 
 # Copy project files
 COPY . .

@@ -83,7 +83,7 @@ make up
 # 4. Start JupyterLab locally
 make jupyter
 
-# 5. Open http://localhost:8888 and run notebooks
+# 5. Open http://localhost:8888 — then follow docs/LEARNING_PATH.md to pick a module
 ```
 
 ---
@@ -152,19 +152,6 @@ dbt/
 
 ---
 
-## Notebooks
-
-Run notebooks in order: **01 → 02 → 04 → 03**.
-
-| File | Producer | Description |
-|------|----------|-------------|
-| `01_setup_tables` | — | Load CSV into Iceberg, Delta Lake, Parquet |
-| `02_streaming_to_iceberg` | `make producer` | File-based Structured Streaming → Iceberg |
-| `03_query_iceberg` | — | Time travel, snapshots, cross-table analysis |
-| `04_sales_streaming_to_iceberg` | `make sales-producer` | Kafka stream + customer enrichment → Iceberg |
-
----
-
 ## Airflow
 
 Airflow 3.1.7 runs locally via `uv` (separate venv in `airflow/`). It is independent of Docker services.
@@ -205,8 +192,6 @@ make restart-constrained # Restart everything (constrained profile)
 make logs             # Tail service logs
 make status           # Show service status
 make jupyter          # Start local JupyterLab
-make producer         # Start file-based event producer
-make sales-producer   # Start Kafka sales event producer
 make airflow-up       # Start Airflow locally (UI at :5000, airflow/airflow)
 make airflow-down     # Stop Airflow
 make airflow-logs     # Tail Airflow logs
@@ -265,13 +250,6 @@ spark-dev/
 ├── quality/                    # Phase 5 ✅ dbt advanced + data quality (DBT-1..10; dbt-expectations + GE)
 ├── capstone/                   # Phase 7 ✅ CAP-1 e2e pipeline + CAP-2 incident simulator (8 cards)
 ├── docs/                       # curriculum brief/plan, spark-ui-guide, troubleshooting
-├── app/
-│   ├── utils/
-│   │   ├── producer.py         # File-based event producer
-│   │   └── sales_producer.py   # Kafka sales event producer
-│   ├── data/
-│   │   └── source/             # Static reference data (CSV)
-│   └── notebooks/              # Jupyter notebooks (01–04; import from common.spark_session)
 ├── airflow/                    # Airflow project (separate uv env)
 │   ├── pyproject.toml          # Airflow + provider dependencies
 │   ├── passwords.json          # Local auth (airflow/airflow, role: admin)

@@ -1,5 +1,5 @@
 .PHONY: help up up-constrained _ports down restart restart-constrained logs jupyter jupyter-stop \
-       producer sales-producer clean clean-all status build cdc-up cdc-down cdc-logs \
+       clean clean-all status build cdc-up cdc-down cdc-logs \
        monitoring-up monitoring-down monitoring-logs \
        dbt-build dbt-debug airflow-up airflow-down airflow-logs airflow-clean
 
@@ -96,14 +96,6 @@ jupyter: jupyter-stop ## Start JupyterLab locally (kills existing session first)
 
 jupyter-stop: ## Stop any running JupyterLab session
 	@-pkill -f "jupyter-lab" 2>/dev/null && echo "Stopped existing JupyterLab." || true
-
-producer: ## Start file-based event producer
-	@set -a && [ -f .env ] && . ./.env && set +a && \
-	uv run python app/utils/producer.py
-
-sales-producer: ## Start Kafka sales event producer
-	@set -a && [ -f .env ] && . ./.env && set +a && \
-	uv run python app/utils/sales_producer.py
 
 # ── dbt (convenience — or: cd dbt && source ../.env && dbt <cmd>) ───────────
 

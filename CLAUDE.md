@@ -76,7 +76,6 @@ All built modules are verified end-to-end via headless `nbconvert` against the r
 - dbt creates tables in `spark_catalog` (Delta/Hive managed tables)
 - Notebooks use `iceberg_catalog.my_database.xxx` explicitly — they never rely on the default catalog
 - This avoids the Iceberg classloader issue with Thrift while keeping Iceberg fully usable from notebooks
-- Notebook `01_setup_tables` also writes the same data as **Parquet** (plain files) and **Delta** — the repo demonstrates all three table formats side by side.
 
 ### Iceberg namespaces are pre-created as directories
 - The Hadoop-based Iceberg catalog stores namespaces as filesystem directories
@@ -150,12 +149,6 @@ Airflow 3 runs **locally** via `uv` (separate venv in `airflow/`), independent o
 ├── iceberg/                Phase 2 ✅ LAK-1..LAK-10 lakehouse / table-format correctness
 ├── kafka/ debezium/ quality/   Phase 3–5 track signposts (built gradually)
 ├── docs/                   CURRICULUM_BRIEF, CURRICULUM_PLAN, spark-ui-guide, troubleshooting
-├── app/
-│   ├── utils/
-│   │   ├── producer.py        File-based event producer (JSON → streaming_input/)
-│   │   └── sales_producer.py  Kafka event producer (→ sales-events topic)
-│   ├── data/source/           Static CSVs (customers.csv, orders.csv)
-│   └── notebooks/             Jupyter notebooks 01-04 (import from common.spark_session)
 ├── dbt/
 │   ├── dbt_project.yml        staging=view, marts=table
 │   ├── models/staging/        stg_customers (view)

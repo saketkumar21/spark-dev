@@ -5,8 +5,7 @@ cd /app
 
 # Create required directories
 mkdir -p .tmp/spark-events .tmp/local_iceberg_warehouse .tmp/local_delta_warehouse \
-         .tmp/checkpoint_user_events .tmp/checkpoint_sales_enriched \
-         .tmp/metastore .tmp/spark-warehouse app/data/streaming_input logs
+         .tmp/metastore .tmp/spark-warehouse logs
 
 # Pre-create Iceberg namespaces as directories (Hadoop catalog = filesystem).
 # Iceberg doesn't auto-create 'default', so Thrift clients would get SCHEMA_NOT_FOUND.
