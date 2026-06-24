@@ -26,6 +26,9 @@ import urllib.error
 import urllib.request
 
 import psycopg2
+from kafka import KafkaConsumer
+
+BOOTSTRAP = "localhost:29092"   # Kafka host listener (same as common.kafka_helpers.BOOTSTRAP)
 
 # ── connection points (host side) ────────────────────────────────────────────
 PG_HOST = "localhost"
@@ -181,10 +184,15 @@ def debezium_pg_config(name: str, table: str = "orders", *, slot: str | None = N
         "topic.prefix": TOPIC_PREFIX,
         "plugin.name": "pgoutput",                # built into Postgres 16
         "slot.name": slot or _safe_slot(name),
+        # Unique publication PER connector — Debezium's default name is the shared
+        # "dbz_publication", so two connectors with different table.include.list would
+        # fight over one publication and silently stop emitting. Isolate them.
+        "publication.name": f"{_safe_slot(name)[:-5]}_pub",
         "publication.autocreate.mode": "filtered",
         "table.include.list": f"public.{table}",
         "snapshot.mode": snapshot_mode,
         "tombstones.on.delete": "true",
+        "decimal.handling.mode": "double",        # NUMERIC → readable double (not base64 bytes)
         "key.converter": "org.apache.kafka.connect.json.JsonConverter",
         "value.converter": "org.apache.kafka.connect.json.JsonConverter",
         "key.converter.schemas.enable": "false",
@@ -205,6 +213,24 @@ def delete_connector(name: str) -> int:
     """Delete a connector (ignore if absent). Returns the HTTP status."""
     status, _ = _req("DELETE", f"/connectors/{name}")
     return status
+
+
+def reset_offsets(name: str) -> bool:
+    """Reset a connector's stored offsets so a re-registration with the same name re-runs the
+    **initial snapshot** (Connect persists offsets in the connect_offsets topic — deleting the
+    connector alone does NOT clear them, so a re-created connector would skip the snapshot and
+    only stream). Connect 3.x flow: STOP → DELETE /offsets. Returns True on success."""
+    # The connector must exist and be STOPPED before its offsets can be deleted.
+    if _req("GET", f"/connectors/{name}")[0] != 200:
+        return False
+    _req("PUT", f"/connectors/{name}/stop")
+    for _ in range(10):
+        st = connector_status(name).get("connector", {}).get("state")
+        if st == "STOPPED":
+            break
+        time.sleep(1.0)
+    status, _ = _req("DELETE", f"/connectors/{name}/offsets")
+    return status in (200, 204)
 
 
 def connector_status(name: str) -> dict:
@@ -245,11 +271,68 @@ def connect_up(timeout: float = 60.0) -> bool:
     return False
 
 
-def teardown(name: str, table: str | None = None, slot: str | None = None) -> None:
-    """Clean up a CDC demo: delete the connector, drop its replication slot, drop the table.
-    Order matters — delete the connector first so the slot becomes inactive and droppable."""
+def topic_name(table: str = "orders", schema: str = "public") -> str:
+    """The Kafka topic Debezium publishes a captured table to: ``<prefix>.<schema>.<table>``."""
+    return f"{TOPIC_PREFIX}.{schema}.{table}"
+
+
+def read_cdc_events(topic: str, max_ms: int = 12000, bootstrap: str = BOOTSTRAP) -> list[dict]:
+    """Drain a Debezium topic once (from the beginning) and return parsed events.
+
+    Each item is ``{"op": "r|c|u|d"|None, "before": dict|None, "after": dict|None, "raw": value}``;
+    a ``None`` op is a **tombstone** (the null-value record Debezium emits after a delete). Bounded
+    by ``max_ms`` so it always returns. The reusable 'show me the envelope' read for CDC-2/3/4/6.
+    """
+    c = KafkaConsumer(topic, bootstrap_servers=bootstrap, auto_offset_reset="earliest",
+                      enable_auto_commit=False, consumer_timeout_ms=max_ms,
+                      value_deserializer=lambda b: b.decode() if b else None)
+    out = []
+    try:
+        for m in c:
+            if m.value is None:
+                out.append({"op": None, "before": None, "after": None, "raw": None})
+                continue
+            v = json.loads(m.value)
+            out.append({"op": v.get("op"), "before": v.get("before"),
+                        "after": v.get("after"), "raw": v})
+    finally:
+        c.close()
+    return out
+
+
+def op_counts(events: list[dict]) -> dict:
+    """Summarize :func:`read_cdc_events` output: ``{op_or_'tombstone': count}`` (snapshot=r,
+    create=c, update=u, delete=d, tombstone=null-value record)."""
+    counts: dict = {}
+    for e in events:
+        k = e["op"] if e["op"] is not None else "tombstone"
+        counts[k] = counts.get(k, 0) + 1
+    return counts
+
+
+def delete_data_topic(table: str = "orders", schema: str = "public") -> None:
+    """Delete the Debezium data topic for a table so a re-run starts clean (Kafka topics
+    persist across connector re-registrations — stale events would otherwise pile up)."""
+    admin = __import__("kafka").KafkaAdminClient(bootstrap_servers=BOOTSTRAP)
+    try:
+        admin.delete_topics([topic_name(table, schema)])
+    except Exception:  # noqa: BLE001 — absent
+        pass
+    finally:
+        admin.close()
+
+
+def teardown(name: str, table: str | None = None, slot: str | None = None,
+             drop_topic: bool = True) -> None:
+    """Clean up a CDC demo: delete the connector, drop its replication slot, drop the table,
+    and (by default) delete the Debezium data topic so the module re-runs from a clean slate.
+    Resets Connect offsets first so a same-named re-registration re-runs the initial snapshot
+    (otherwise it resumes from stored offsets and skips the snapshot)."""
+    reset_offsets(name)   # stop + clear offsets so the next run snapshots (no-op if absent)
     delete_connector(name)
     time.sleep(2.0)  # let Connect begin releasing the slot
     drop_slot(slot or _safe_slot(name))   # retries until the slot is inactive & gone
     if table:
         pg_exec(f"DROP TABLE IF EXISTS public.{table}")
+        if drop_topic:
+            delete_data_topic(table)

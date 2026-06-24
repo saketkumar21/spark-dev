@@ -51,7 +51,8 @@ Start with [`docs/CURRICULUM_BRIEF.md`](docs/CURRICULUM_BRIEF.md) and
   - [`spark/`](spark/README.md) — **Phase 1 ✅ complete** · `SPK-1…SPK-10` (skew, executor/driver OOM, spill, joins, AQE, pruning, caching, shuffle, internals)
   - [`iceberg/`](iceberg/README.md) — **Phase 2 ✅ complete** · `LAK-1…LAK-10` (formats, small files, snapshots, orphans, manifests, schema evo, partitioning, MERGE, time travel, internals)
   - [`kafka/`](kafka/README.md) — **Phase 3 ✅ complete** · `KAF-1…KAF-6` + `STR-1…STR-3` (hot partitions, consumer lag, rebalancing, retention/compaction, delivery semantics, poison-pill/dead-letter, watermarking, checkpoints, backpressure)
-  - `debezium/` · `quality/` · `airflow/` — Phases 4–6 (planned)
+  - [`debezium/`](debezium/README.md) — **Phase 4 ✅ complete** · `CDC-1…CDC-9` (logical replication, connector bring-up, snapshot modes, event envelope, WAL/slot growth, deletes & replica identity, Spark→Iceberg MERGE, schema evolution, failure-mode tour)
+  - `quality/` · `airflow/` — Phases 5–6 (planned)
 - **Guides**: [`docs/spark-ui-guide.md`](docs/spark-ui-guide.md) (symptom → which UI tab) and
   [`docs/troubleshooting.md`](docs/troubleshooting.md) (symptom → cause → fix).
 
@@ -94,6 +95,8 @@ make jupyter
 | History Server | http://localhost:18080 | Completed Spark applications |
 | Kafka UI | http://localhost:8080 | Topic browser, message inspector |
 | Kafka broker | http://localhost:29092 | Bootstrap server for producers |
+| Postgres (CDC) | `localhost:5432` | CDC source — **opt-in** (`make cdc-up`); user/pass `cdc`/`cdc`, db `inventory` |
+| Kafka Connect (CDC) | http://localhost:8083 | Debezium connector REST API — **opt-in** (`make cdc-up`) |
 | JupyterLab | http://localhost:8888 | Local notebook server |
 | Airflow | http://localhost:5000 | Local DAG scheduler & web UI (airflow/airflow) |
 
@@ -253,7 +256,8 @@ spark-dev/
 ├── spark/                      # Phase 1 ✅ Spark performance pathologies (SPK-1 skew flagship)
 ├── iceberg/                    # Phase 2 ✅ lakehouse / table-format correctness (LAK-1..10)
 ├── kafka/                      # Phase 3 ✅ Kafka & Structured Streaming robustness (KAF-1..6, STR-1..3)
-├── quality/ debezium/          # Phase 4–5 track signposts (built gradually)
+├── debezium/                   # Phase 4 ✅ CDC: Postgres→Debezium→Kafka→Spark→Iceberg (CDC-1..9)
+├── quality/                    # Phase 5 track signpost (built gradually)
 ├── docs/                       # curriculum brief/plan, spark-ui-guide, troubleshooting
 ├── app/
 │   ├── utils/

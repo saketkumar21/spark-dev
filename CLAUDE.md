@@ -55,7 +55,8 @@ Each track is a self-contained top-level folder with its own README (Break→Det
 - `spark/` — **Phase 1 ✅ complete**: `SPK-1…SPK-10` perf pathologies (skew flagship in `spark/skew/`).
 - `iceberg/` — **Phase 2 ✅ complete**: `LAK-1…LAK-10` lakehouse / table-format correctness.
 - `kafka/` — **Phase 3 ✅ complete**: `KAF-1…KAF-6` (partitioning, consumer lag, rebalancing, retention/compaction, delivery semantics, poison-pill/dead-letter) + `STR-1…STR-3` (watermarking, checkpoints/restart, backpressure). Reuses `common/kafka_helpers.py`; producers/admin on host `localhost:29092`, Spark reads `kafka:9092`, bounded `trigger(availableNow=True)` streams.
-- `debezium/` (Phase 4 CDC), `quality/` (Phase 5 dbt-tests + Great Expectations) — currently README **signposts**, built gradually.
+- `debezium/` — **Phase 4 ✅ complete**: `CDC-1…CDC-9` (logical replication, connector bring-up, snapshot modes, event envelope, WAL/slot growth, deletes/replica identity, Spark→Iceberg MERGE, schema evolution, failure-mode tour). Adds **opt-in** Postgres + Kafka Connect (`make cdc-up`; compose profile `cdc`). Reuses `common/cdc_helpers.py` (Postgres DML, Debezium connector lifecycle over the Connect REST API, slot inspection, offset-resetting teardown).
+- `quality/` (Phase 5 dbt-tests + Great Expectations) — currently a README **signpost**, built gradually.
 
 All built modules are verified end-to-end via headless `nbconvert` against the running server before commit. Modules are Connect-safe (DataFrame/SQL + `df.explain()`; no `sparkContext`/RDD) and laptop-safe (lazy/tiny data in `.tmp/`, teardown, `make clean`).
 
@@ -167,10 +168,19 @@ Airflow 3 runs **locally** via `uv` (separate venv in `airflow/`), independent o
 |---------|-------|-------|---------|
 | spark-connect | spark-dev:latest | 10000, 15002, 4040 | Unified Thrift+Connect server (memory-capped via `mem_limit`) |
 | spark-history | spark-dev:latest | 18080 | History Server (reads .tmp/spark-events) |
-| kafka | apache/kafka:latest | 29092 | KRaft broker (no ZooKeeper) |
+| kafka | apache/kafka:latest | 29092 | KRaft broker (no ZooKeeper); txn-state-log RF/min-ISR pinned to 1 for single-broker idempotent producers |
 | kafka-ui | provectuslabs/kafka-ui | 8080 | Topic browser |
+| postgres | postgres:16 | 5432 | **opt-in** (`make cdc-up`, profile `cdc`) CDC source, `wal_level=logical` |
+| kafka-connect | debezium/connect:3.0.0.Final | 8083 | **opt-in** (`make cdc-up`, profile `cdc`) Debezium Postgres connector + REST API |
 
-(JupyterLab :8888 and Airflow :5000 run locally on the host, not in Docker.)
+(JupyterLab :8888 and Airflow :5000 run locally on the host, not in Docker. Postgres + Kafka
+Connect are **opt-in** — `make up` does not start them; `make cdc-up` does.)
+
+### CDC re-runnability gotchas (Phase 4 — baked into `common/cdc_helpers.py`)
+- **Unique `publication.name` per connector.** Debezium's default is the shared `dbz_publication`; two
+  connectors with different `table.include.list` fight over it and silently stop emitting. `debezium_pg_config` sets a per-connector name.
+- **Re-registering a connector with the same name skips the snapshot** (Connect persists offsets in `connect_offsets`; deleting the connector doesn't clear them). `teardown()` calls `reset_offsets()` (STOP → DELETE /offsets) so the next run snapshots; snapshot-dependent demos (CDC-7) use `snapshot.mode="always"` to be bulletproof.
+- **`decimal.handling.mode=double`** so NUMERIC is readable (not base64); **`teardown` deletes the data topic** so stale events don't accumulate across runs.
 
 ## Common Issues & Fixes
 
