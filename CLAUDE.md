@@ -126,11 +126,15 @@ dbt build          # seed + run + test
 Airflow 3 runs **locally** via `uv` (separate venv in `airflow/`), independent of Docker:
 `make airflow-up` (UI at :5000, login airflow/airflow), `make airflow-down`, `make airflow-clean`.
 - DAGs live in `airflow/dags/` (now **tracked** — `.gitignore` no longer excludes it).
-- Currently only `example_dag.py` (a trivial working DAG). The inherited internal `prodrat_main`
-  DAG was **removed** (it carried real S3 buckets, K8s namespaces, internal cell domains,
-  Snowflake roles, and an NR account id — none of it teaching material).
-- Generic, local-runnable teaching DAGs (`AF-1`…`AF-10`) that orchestrate this repo's own
-  Spark/dbt jobs come in **Phase 6** of the curriculum.
+- The inherited internal `prodrat_main` DAG was **removed** (it carried real S3 buckets, K8s
+  namespaces, internal cell domains, Snowflake roles, and an NR account id — none of it teaching material).
+- **Phase 6 ✅ complete**: `AF-1…AF-10` generic local teaching DAGs (`airflow/dags/af1_idempotency.py`
+  … `af10_dbt_spark_e2e.py`) — idempotency, data-interval execution model, catchup/backfill,
+  retries/SLA, sensor modes, trigger rules/branching, dynamic task mapping, XCom limits, Assets/
+  data-aware scheduling, and a dbt+Spark+GE end-to-end (`AF-10` shells into the repo's `uv` project
+  via BashOperator; Cosmos described). See [`airflow/README.md`](airflow/README.md).
+- Verify a DAG headlessly (how Phase 6 was tested — synchronous, no scheduler): from `airflow/`,
+  `AIRFLOW_HOME=$PWD/.airflow_home AIRFLOW__CORE__DAGS_FOLDER=$PWD/dags uv run airflow dags test <dag_id> 2025-03-01`.
 
 ## File Layout
 

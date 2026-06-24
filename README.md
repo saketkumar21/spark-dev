@@ -53,7 +53,7 @@ Start with [`docs/CURRICULUM_BRIEF.md`](docs/CURRICULUM_BRIEF.md) and
   - [`kafka/`](kafka/README.md) — **Phase 3 ✅ complete** · `KAF-1…KAF-6` + `STR-1…STR-3` (hot partitions, consumer lag, rebalancing, retention/compaction, delivery semantics, poison-pill/dead-letter, watermarking, checkpoints, backpressure)
   - [`debezium/`](debezium/README.md) — **Phase 4 ✅ complete** · `CDC-1…CDC-9` (logical replication, connector bring-up, snapshot modes, event envelope, WAL/slot growth, deletes & replica identity, Spark→Iceberg MERGE, schema evolution, failure-mode tour)
   - [`quality/`](quality/README.md) — **Phase 5 ✅ complete** · `DBT-1…DBT-10` (materializations, incremental strategies, late-arriving/lookback, SCD2 snapshots, schema-change, testing/layering, quarantine, dbt-expectations + Great Expectations, sources/freshness/contracts/exposures, macros/slim-CI)
-  - `airflow/` — Phase 6 (planned)
+  - [`airflow/`](airflow/README.md) — **Phase 6 ✅ complete** · `AF-1…AF-10` (idempotency, execution model, catchup/backfill, retries/SLA, sensor modes, trigger rules/branching, dynamic mapping, XCom limits, assets/data-aware, dbt+Spark e2e)
 - **Guides**: [`docs/spark-ui-guide.md`](docs/spark-ui-guide.md) (symptom → which UI tab) and
   [`docs/troubleshooting.md`](docs/troubleshooting.md) (symptom → cause → fix).
 
@@ -270,7 +270,7 @@ spark-dev/
 ├── airflow/                    # Airflow project (separate uv env)
 │   ├── pyproject.toml          # Airflow + provider dependencies
 │   ├── passwords.json          # Local auth (airflow/airflow, role: admin)
-│   └── dags/                   # DAG definitions
+│   └── dags/                   # Phase 6 ✅ teaching DAGs (AF-1..10) + example_dag
 ├── dbt/                        # dbt project (models, seeds, tests)
 ├── pyproject.toml              # Python dependencies
 └── .tmp/                       # Generated data (gitignored)
