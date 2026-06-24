@@ -1,5 +1,6 @@
 .PHONY: help up up-constrained _ports down restart restart-constrained logs jupyter jupyter-stop \
        producer sales-producer clean clean-all status build cdc-up cdc-down cdc-logs \
+       monitoring-up monitoring-down monitoring-logs \
        dbt-build dbt-debug airflow-up airflow-down airflow-logs airflow-clean
 
 help: ## Show this help
@@ -57,6 +58,23 @@ cdc-down: ## Stop ONLY the CDC services (leaves the base stack running)
 
 cdc-logs: ## Tail Kafka Connect logs
 	docker compose logs -f kafka-connect
+
+monitoring-up: ## Start the observability stack (Prometheus + Grafana + exporters) — CAP-3, opt-in
+	docker compose --env-file .env --env-file conf/profiles/tuned.env --profile monitoring up -d
+	@echo ""
+	@echo "  Prometheus : http://localhost:$${PROMETHEUS_PORT:-9090}  (Status → Targets)"
+	@echo "  Grafana    : http://localhost:$${GRAFANA_PORT:-3000}  (admin/admin; Prometheus datasource pre-provisioned)"
+	@echo "  Exporters  : kafka :9308 · postgres :9187 (postgres-exporter needs 'make cdc-up')"
+	@echo ""
+	@echo "  Import Grafana dashboards by ID: Kafka 7589 · Postgres 9628 · Spark (search 'spark')."
+	@echo "  For Spark metrics, ensure the server was (re)started after enabling spark.ui.prometheus.enabled."
+
+monitoring-down: ## Stop ONLY the observability services
+	docker compose stop prometheus grafana kafka-exporter postgres-exporter
+	docker compose rm -f prometheus grafana kafka-exporter postgres-exporter
+
+monitoring-logs: ## Tail Prometheus + Grafana logs
+	docker compose logs -f prometheus grafana
 
 logs: ## Tail Docker service logs
 	docker compose logs -f

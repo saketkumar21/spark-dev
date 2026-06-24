@@ -1,0 +1,31 @@
+# Prometheus scrape config for the optional `monitoring` profile (CAP-3).
+# Targets use docker-network service names. Some targets are only UP when their stack is running:
+#   spark         → needs `make up` + spark.ui.prometheus.enabled (conf/spark-defaults.conf) + a restart
+#   postgres      → needs `make cdc-up` (the CDC Postgres) so postgres-exporter has a database
+#   kafka         → part of the base stack (always up with `make up`)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: spark
+    metrics_path: /metrics/prometheus/
+    static_configs:
+      - targets: ["spark-connect:4040"]
+
+  - job_name: spark-executors
+    metrics_path: /metrics/executors/prometheus/
+    static_configs:
+      - targets: ["spark-connect:4040"]
+
+  - job_name: postgres            # CDC-5: replication-slot retained WAL, connections, tx age
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  - job_name: kafka               # KAF-1/KAF-2: per-partition offsets + consumer-group lag
+    static_configs:
+      - targets: ["kafka-exporter:9308"]

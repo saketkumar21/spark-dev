@@ -182,6 +182,67 @@ services:
       start_period: 40s
     restart: unless-stopped
 
+  # ── Observability (CAP-3) — opt-in metrics stack ──────────────────────────
+  # All behind compose profile "monitoring": `make monitoring-up`. NOT started by `make up`.
+  # postgres-exporter needs `make cdc-up` (the CDC Postgres) to have a database to read.
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    profiles: ["monitoring"]
+    mem_limit: ${PROMETHEUS_MEM_LIMIT:-512m}
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./conf/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    profiles: ["monitoring"]
+    mem_limit: ${GRAFANA_MEM_LIMIT:-512m}
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_AUTH_ANONYMOUS_ENABLED=true        # read-only browsing without login (local teaching)
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./conf/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # Kafka metrics over the Kafka protocol (no JMX agent) — KAF-1/KAF-2 lag + per-partition offsets.
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka-exporter
+    profiles: ["monitoring"]
+    mem_limit: ${KAFKA_EXPORTER_MEM_LIMIT:-128m}
+    command: ["--kafka.server=kafka:9092"]
+    ports:
+      - "${KAFKA_EXPORTER_PORT:-9308}:9308"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Postgres metrics — the CDC-5 replication-slot retained-WAL signal. Needs `make cdc-up`.
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    profiles: ["monitoring"]
+    mem_limit: ${POSTGRES_EXPORTER_MEM_LIMIT:-128m}
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-cdc}:${POSTGRES_PASSWORD:-cdc}@postgres:5432/${POSTGRES_DB:-inventory}?sslmode=disable
+    ports:
+      - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
+    restart: unless-stopped
+
 volumes:
   ivy-cache:
     name: spark-dev-ivy-cache
+  grafana-data:
+    name: spark-dev-grafana-data

@@ -1,11 +1,30 @@
-# CAP-3 — Observability (optional appendix)
+# CAP-3 — Observability (optional, opt-in)
 
-> **Status: design appendix, opt-in, offline-first.** This proposes tried-and-tested **open-source**
-> observability you *can* add to the repo for each service. Nothing here is wired into the default
-> `make up` stack — observability is heavy (another ~1–2 GB) and the curriculum's core promise is a
-> responsive laptop, so it's an explicit add-on. The recipes below are compiled from established OSS
-> practice (not live-verified against each project's latest docs in this environment); treat exact
-> versions/flags as a starting point to iterate on — it *is* somewhat trial-and-error per stack.
+> **Status: the metrics pillar is BUILT & VERIFIED; the rest is a documented design appendix.**
+> An opt-in **`make monitoring-up`** profile (Prometheus + Grafana + `kafka-exporter` +
+> `postgres-exporter`, plus Spark's `PrometheusServlet`) is wired in and was verified end-to-end —
+> all 5 Prometheus targets scrape **UP** (prometheus, spark, spark-executors, kafka, postgres),
+> with the **CDC-5** replication-slot signal and **KAF-1/2** consumer-lag/offsets live. It is **not**
+> part of `make up` — observability adds ~1 GB and the curriculum's promise is a responsive laptop,
+> so it's an explicit add-on. The heavier integrations below (Connect-JMX, Airflow OTel, dbt
+> Elementary, OpenLineage/Marquez lineage) remain **described, not built** — start points to iterate
+> on (genuinely trial-and-error per stack).
+
+## Quick start (the built part)
+
+```bash
+make up            # base stack (Kafka + Spark with PrometheusServlet enabled)
+make cdc-up        # so postgres-exporter has a database (the CDC-5 slot signal)
+make monitoring-up # Prometheus :9090 + Grafana :3000 + exporters
+```
+- **Prometheus** http://localhost:9090 → Status → Targets (all 5 UP).
+- **Grafana** http://localhost:3000 (admin/admin, anonymous read enabled; Prometheus datasource
+  pre-provisioned). Import dashboards by ID: **Kafka 7589**, **Postgres 9628**, or build panels on
+  `kafka_consumergroup_lag`, `pg_replication_slots_*`, Spark `metrics_*driver*`.
+- `make monitoring-down` stops just these services. Config: [`conf/prometheus.yml`](../conf/prometheus.yml),
+  [`conf/metrics.properties`](../conf/metrics.properties), [`conf/grafana/provisioning/`](../conf/grafana/provisioning/).
+- Spark metrics need the server started with `spark.ui.prometheus.enabled` (already in
+  [`conf/spark-defaults.conf`](../conf/spark-defaults.conf)); a pre-existing server needs `make restart`.
 
 There is **no single framework** that covers Spark + Kafka + Debezium + Airflow + dbt. The proven,
 vendor-neutral approach is two OSS pillars, each of which every one of these tools already integrates
@@ -69,16 +88,18 @@ as one DAG of datasets.
 
 ---
 
-## What I'd actually recommend for this repo
+## What's built vs. what's next
 
-- **Start tiny, prove value:** add **`postgres_exporter` + Prometheus + Grafana** behind a
-  `monitoring` profile and graph the **CDC-5 replication-slot lag** live. It's the smallest change
-  with the most curriculum payoff.
-- **Then metrics breadth:** Spark `PrometheusServlet` (config-only, no new container) and the Kafka/
-  Connect `jmx_exporter`.
-- **Then lineage:** OpenLineage → Marquez, starting with the Airflow provider (one pip package + an
-  env var), since AF-10/CAP-1 already orchestrate the real jobs.
-- Keep everything **opt-in and offline**; document the extra memory; never required to run a module.
+- **Built & verified (this profile):** Prometheus + Grafana + `kafka-exporter` + `postgres-exporter`
+  + Spark `PrometheusServlet`. Chosen because it's the smallest set that lights up the curriculum's
+  flagship signals live — **CDC-5** slot/WAL (`postgres-exporter`), **KAF-1/2** lag+offsets
+  (`kafka-exporter`, over the Kafka protocol — no fragile JMX-agent injection), **SPK-\*** JVM/exec
+  (config-only). All 5 targets verified UP.
+- **Next, if you want more (described above, not built):** Spark/Connect **`jmx_exporter`** for
+  Debezium connector MBeans; **Airflow** OTel/StatsD; **dbt Elementary**; then **OpenLineage →
+  Marquez** lineage (start with the Airflow provider — one package + an env var — since AF-10/CAP-1
+  already orchestrate the real jobs).
+- Everything stays **opt-in and offline**; never required to run a module.
 
 ## Optional, masked: New Relic (commercial alternative)
 
@@ -90,10 +111,13 @@ are stored in this repo** (they were removed in F-7); a learner would supply the
 
 ---
 
-### Verifying this appendix
+### Verification status
 
-These recipes are from established OSS practice but were **not live-verified** against each project's
-current docs in this environment (web access is disabled here). Before implementing, confirm the
-exact image tags, the Spark 4 `metrics.properties` sink class names, the Debezium MBean names for your
-connector version, and the Airflow 3 OTel vs StatsD choice. If web access is enabled, the exact
-configs and current Grafana dashboard IDs can be pinned down and a `monitoring` profile built + verified.
+The **built** metrics profile was verified live in this repo: `make monitoring-up` brought up
+Prometheus, Grafana, and both exporters; Prometheus reported all five targets **UP**
+(`prometheus`, `spark`, `spark-executors`, `kafka`, `postgres`); the Spark `/metrics/prometheus/`
+endpoint served driver gauges; `kafka-exporter` exposed 600+ `kafka_*` series and `postgres-exporter`
+500+ `pg_*` series including the `pg_replication_slots_*` (CDC-5) family. The **described-only**
+extensions (Connect-JMX, Airflow OTel, dbt Elementary, OpenLineage/Marquez) are from established OSS
+practice and were sanity-checked against current docs (Spark monitoring, kafka_exporter, Airflow
+metrics) but not themselves wired up — confirm exact image tags / MBean names when you implement them.

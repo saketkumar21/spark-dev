@@ -9,7 +9,7 @@ CDC, dbt/quality, Airflow), the capstone runs the **whole stack as one pipeline*
 |----|--------|------------|
 | **CAP-1** | [End-to-end pipeline](cap1_pipeline.py) + [DAG](../airflow/dags/cap1_e2e_pipeline.py) | One Airflow DAG: Postgres→Debezium→Kafka→Spark→Iceberg MERGE + dbt marts + quality gates + cleanup — the whole stack, orchestrated |
 | **CAP-2** ⭐ | [Production Incident Simulator](incident_simulator/) | 8 on-call scenario cards — symptom first, diagnose & fix like an SRE; the grand finale |
-| CAP-3 | Observability *(optional)* | Local metrics / lineage options for the stack — opt-in appendix, never required to be online (see [`docs/OBSERVABILITY.md`](../docs/OBSERVABILITY.md) when present) |
+| CAP-3 | [Observability](../docs/OBSERVABILITY.md) *(optional, opt-in)* | **Built & verified** metrics profile: `make monitoring-up` → Prometheus + Grafana + kafka/postgres exporters + Spark `PrometheusServlet` (all 5 targets UP; CDC-5 slot + KAF-1/2 lag live). Heavier integrations (Connect-JMX, Airflow OTel, dbt Elementary, OpenLineage/Marquez) are documented next-steps. Never part of `make up`. |
 | **CAP-4** | [Learning path](../docs/LEARNING_PATH.md) | The master route: all 58 modules across 6 tracks + capstone — ordering, time estimates, prerequisites, "what you can diagnose after each module" |
 
 ## CAP-1 — the end-to-end pipeline
