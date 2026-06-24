@@ -9,16 +9,16 @@
 > re-scans recent history every run and the `MERGE` dedups by `unique_key`, so the late row is
 > recaptured and existing rows aren't duplicated.
 
-This expands the project under [`dbt/`](../../dbt/). Run everything from there:
+This expands the project under [`dbt/`](README.md). Run everything from there:
 
 ```bash
 cd dbt && source .env        # sets DBT_PROFILES_DIR + Thrift connection vars
 dbt <cmd>                     # Thrift JDBC → Spark; fct_orders is a Delta MERGE table
 ```
 
-- **Models:** [`stg_orders`](../../dbt/models/staging/stg_orders.sql) (view) →
-  [`fct_orders`](../../dbt/models/marts/fct_orders.sql) (incremental `merge`, Delta, `unique_key=order_id`).
-- **Seed:** [`orders.csv`](../../dbt/seeds/orders.csv) — 14 rows, each with both an `ordered_at`
+- **Models:** [`stg_orders`](../models/staging/stg_orders.sql) (view) →
+  [`fct_orders`](../models/marts/fct_orders.sql) (incremental `merge`, Delta, `unique_key=order_id`).
+- **Seed:** [`orders.csv`](../seeds/orders.csv) — 14 rows, each with both an `ordered_at`
   (**EVENT** time) and a `loaded_at` (**LOAD** time, when it landed).
 - **Laptop-safe:** 14 tiny rows, two vars, no infra beyond the running Spark server (`make up`).
 

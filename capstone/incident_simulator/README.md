@@ -23,8 +23,8 @@ solution links back to the module that teaches it, so you can reproduce the brea
 | [INC-3](inc3_small_files.md) | Dashboard query crept from <1s to many seconds; row count barely moved | Iceberg **small files** | [LAK-2](../../iceberg/small_files/) |
 | [INC-4](inc4_kafka_hot_partition.md) | Consumer-group lag climbing; one partition way behind, peers idle | Kafka **hot partition** | [KAF-1](../../kafka/partitioning/) · [KAF-2](../../kafka/consumer_lag/) |
 | [INC-5](inc5_cdc_wal_growth.md) | Postgres disk filling fast; WAL won't recycle | CDC **replication-slot / WAL growth** | [CDC-5](../../debezium/wal_growth/) |
-| [INC-6](inc6_late_data.md) | Yesterday's revenue is short; some source orders never reached the mart | dbt **late-arriving data** | [DBT-3](../../quality/dbt3_late_arriving/) |
-| [INC-7](inc7_backfill_double_count.md) | A backfilled day is exactly ~2× the truth | Airflow/dbt **idempotency** | [AF-1](../../airflow/dags/af1_idempotency.py) · [DBT-2](../../quality/dbt2_incremental/) |
+| [INC-6](inc6_late_data.md) | Yesterday's revenue is short; some source orders never reached the mart | dbt **late-arriving data** | [DBT-3](../../dbt/quality/dbt3_late_arriving.md) |
+| [INC-7](inc7_backfill_double_count.md) | A backfilled day is exactly ~2× the truth | Airflow/dbt **idempotency** | [AF-1](../../airflow/dags/af1_idempotency.py) · [DBT-2](../../dbt/quality/dbt2_incremental.md) |
 | [INC-8](inc8_stream_restart_dupes.md) | After a restart the streaming job re-emitted data; duplicates downstream | Streaming **checkpoints / delivery** | [STR-2](../../kafka/checkpoints/) · [KAF-6](../../kafka/poison_pill/) |
 
 The eight span every track: **Spark** (1,2), **Iceberg** (3), **Kafka/streaming** (4,8), **CDC** (5),

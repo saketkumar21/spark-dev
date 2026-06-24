@@ -57,7 +57,7 @@ Each track is a self-contained top-level folder with its own README (Break→Det
 - `kafka/` — **Phase 3 ✅ complete**: `KAF-1…KAF-6` (partitioning, consumer lag, rebalancing, retention/compaction, delivery semantics, poison-pill/dead-letter) + `STR-1…STR-3` (watermarking, checkpoints/restart, backpressure). Reuses `common/kafka_helpers.py`; producers/admin on host `localhost:29092`, Spark reads `kafka:9092`, bounded `trigger(availableNow=True)` streams.
 - `debezium/` — **Phase 4 ✅ complete**: `CDC-1…CDC-9` (logical replication, connector bring-up, snapshot modes, event envelope, WAL/slot growth, deletes/replica identity, Spark→Iceberg MERGE, schema evolution, failure-mode tour). Adds **opt-in** Postgres + Kafka Connect (`make cdc-up`; compose profile `cdc`). Reuses `common/cdc_helpers.py` (Postgres DML, Debezium connector lifecycle over the Connect REST API, slot inspection, offset-resetting teardown).
 - `capstone/` — **Phase 7 ✅ complete**: `CAP-1` end-to-end pipeline (`capstone/cap1_pipeline.py` staged ingest/transform/quality/cleanup + `airflow/dags/cap1_e2e_pipeline.py` orchestrating CDC→Iceberg + dbt marts + GE gate; verified green via `airflow dags test`), `CAP-2` incident simulator (`capstone/incident_simulator/` — 8 symptom-first on-call cards linking back to each fault's module), `CAP-3` observability (`docs/OBSERVABILITY.md`) — **built & verified opt-in profile** `make monitoring-up` (Prometheus + Grafana + `kafka-exporter` + `postgres-exporter` + Spark `PrometheusServlet`; all 5 Prometheus targets UP; CDC-5 slot + KAF-1/2 lag live; NOT in `make up`); Connect-JMX / Airflow-OTel / dbt-Elementary / OpenLineage-Marquez are documented next-steps, `CAP-4` learning path (`docs/LEARNING_PATH.md`). **All 7 phases ✅ — 58 modules.**
-- `quality/` — **Phase 5 ✅ complete**: `DBT-1…DBT-10` (materializations, incremental strategies, late-arriving/lookback, SCD2 snapshots, schema-change, testing/layering, quarantine, dbt-expectations + Great Expectations, sources/freshness/contracts/exposures, macros/slim-CI). Expands the `dbt/` project (verified by one `dbt build`: PASS=50/WARN=1/ERROR=0); standalone GE lab in `quality/great_expectations/` (Connect-safe via `toPandas` — GE's Spark engine doesn't work over Connect). dbt-expectations via `metaplane/dbt_expectations` (`dbt deps` needs the corp CA → set `REQUESTS_CA_BUNDLE`/`SSL_CERT_FILE`). Contracts enforce name/type on Spark+Delta; column constraints (not_null) unsupported.
+- `dbt/quality/` — **Phase 5 ✅ complete**: `DBT-1…DBT-10` (materializations, incremental strategies, late-arriving/lookback, SCD2 snapshots, schema-change, testing/layering, quarantine, dbt-expectations + Great Expectations, sources/freshness/contracts/exposures, macros/slim-CI). Lives **inside** the `dbt/` project it teaches — 10 flat `dbtN_*.md` Break→Detect→Fix→Prove writeups + the `great_expectations/` lab (the module folders are markdown-only, so they're files, not folders; dbt only compiles `models/seeds/tests/macros`, so `dbt/quality/` is ignored by `dbt build`). Expands the `dbt/` project (verified by one `dbt build`: PASS=50/WARN=1/ERROR=0); standalone GE lab in `dbt/quality/great_expectations/` (Connect-safe via `toPandas` — GE's Spark engine doesn't work over Connect). dbt-expectations via `metaplane/dbt_expectations` (`dbt deps` needs the corp CA → set `REQUESTS_CA_BUNDLE`/`SSL_CERT_FILE`). Contracts enforce name/type on Spark+Delta; column constraints (not_null) unsupported.
 
 All built modules are verified end-to-end via headless `nbconvert` against the running server before commit. Modules are Connect-safe (DataFrame/SQL + `df.explain()`; no `sparkContext`/RDD) and laptop-safe (lazy/tiny data in `.tmp/`, teardown, `make clean`).
 
@@ -147,13 +147,14 @@ Airflow 3 runs **locally** via `uv` (separate venv in `airflow/`), independent o
 ├── common/                 Shared toolkit: spark_session, profiles, datagen, metrics_diff, iceberg_meta
 ├── spark/                  Phase 1 ✅ SPK-1..SPK-10 perf pathologies (skew flagship in spark/skew/)
 ├── iceberg/                Phase 2 ✅ LAK-1..LAK-10 lakehouse / table-format correctness
-├── kafka/ debezium/ quality/   Phase 3–5 track signposts (built gradually)
+├── kafka/ debezium/        Phase 3–4 track signposts (built gradually)
 ├── docs/                   CURRICULUM_BRIEF, CURRICULUM_PLAN, spark-ui-guide, troubleshooting
 ├── dbt/
 │   ├── dbt_project.yml        staging=view, marts=table
 │   ├── models/staging/        stg_customers (view)
 │   ├── models/marts/          dim_customers + agg_customers (tables)
-│   └── macros/                generate_schema_name override
+│   ├── macros/                generate_schema_name override
+│   └── quality/               Phase 5 ✅ DBT-1..10 writeups + great_expectations/ (GE lab)
 ├── airflow/                Local Airflow (separate uv venv); dags/ tracked (example_dag.py)
 ├── dbt-spark-qualify/      Local package: QUALIFY → CTE transpilation
 ├── pyproject.toml          uv-managed, Python >=3.13

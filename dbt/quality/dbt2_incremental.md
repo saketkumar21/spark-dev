@@ -8,7 +8,7 @@
 > `fct_orders` as a `merge` incremental on Delta and proves a re-run adds new rows **with no
 > duplicates**.
 
-This track expands the dbt project in [`dbt/`](../../dbt/). Run dbt with:
+This track expands the dbt project in [`dbt/`](README.md). Run dbt with:
 
 ```bash
 cd dbt && source .env && dbt <cmd>
@@ -16,7 +16,7 @@ cd dbt && source .env && dbt <cmd>
 
 - **Connection:** Thrift → the unified Spark server (`make up`), catalog `spark_catalog`
   (Delta / Hive managed tables). Spark UI at http://localhost:4040.
-- **Model:** [`marts/fct_orders.sql`](../../dbt/models/marts/fct_orders.sql), sourced from
+- **Model:** [`marts/fct_orders.sql`](../models/marts/fct_orders.sql), sourced from
   `stg_orders`.
 - **Laptop-safe:** the `orders` seed is ~15 rows; the `load_through` var gates how many are
   "available" so the build is small and reproducible.
@@ -153,5 +153,5 @@ order_id)` stays equal.
 
 ## 8. Teardown
 
-`fct_orders` lives in the shared [`dbt/`](../../dbt/) project. `dbt run --full-refresh` rebuilds it
+`fct_orders` lives in the shared [`dbt/`](README.md) project. `dbt run --full-refresh` rebuilds it
 from the seed; `make clean` clears all generated data under `.tmp/`.

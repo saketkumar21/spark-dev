@@ -7,7 +7,7 @@
 > builds one model in each materialization and reads the cost off both sides of the ledger: **build
 > cost** (what `dbt run` pays) vs **read cost** (what every downstream query pays).
 
-This track expands the dbt project in [`dbt/`](../../dbt/). Run dbt with:
+This track expands the dbt project in [`dbt/`](README.md). Run dbt with:
 
 ```bash
 cd dbt && source .env && dbt <cmd>
@@ -91,7 +91,7 @@ consumers duplicates the work (and can bloat the compiled SQL).
 
 ### incremental — only the new rows
 
-`fct_orders` is incremental (the deep dive is [DBT-2](../dbt2_incremental/)):
+`fct_orders` is incremental (the deep dive is [DBT-2](dbt2_incremental.md)):
 
 ```sql
 {{ config(materialized='incremental', file_format='delta',
@@ -133,7 +133,7 @@ The materialization is invisible in the model file's `SELECT`; you see it in two
   (`int_high_value_orders`). Promote it to a table/view the moment you need to query or test it
   directly.
 - **Incremental** when a table's full rebuild gets too expensive — process new rows only
-  ([DBT-2](../dbt2_incremental/)).
+  ([DBT-2](dbt2_incremental.md)).
 
 **When a full-refresh is unavoidable** even on an incremental model: the model logic changed, the
 schema changed, or **late data fell outside the incremental window** (the late-arrival problem →
@@ -175,11 +175,11 @@ CTE in the compiled SQL.
   every query — on Spark that's repeated scans + shuffles. Materialize a midpoint as a table.
 - **Ephemeral keeps models DRY without warehouse clutter**, but you can't query or test it directly,
   and it's duplicated into every consumer — promote it the moment either matters.
-- **A table's full rebuild is the bill that pushes you to incremental** ([DBT-2](../dbt2_incremental/)),
+- **A table's full rebuild is the bill that pushes you to incremental** ([DBT-2](dbt2_incremental.md)),
   and a changed schema / late data is what pushes you *back* to `--full-refresh` (DBT-3).
 
 ## 8. Teardown
 
-These models live in the shared [`dbt/`](../../dbt/) project; there's nothing module-specific to
+These models live in the shared [`dbt/`](README.md) project; there's nothing module-specific to
 tear down. `dbt build` rebuilds them from the seeds, and `make clean` clears all generated data
 under `.tmp/`.

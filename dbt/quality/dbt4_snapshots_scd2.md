@@ -9,18 +9,18 @@
 > that records every version; and the subtlety that bites is **frequency** — you only ever capture
 > the states you actually snapshot at.
 
-This expands the project under [`dbt/`](../../dbt/). Run everything from there:
+This expands the project under [`dbt/`](README.md). Run everything from there:
 
 ```bash
 cd dbt && source .env        # sets DBT_PROFILES_DIR + Thrift connection vars
 dbt <cmd>                     # Thrift JDBC → Spark; snapshot is a Delta table in schema `snapshots`
 ```
 
-- **Snapshot:** [`customers_snapshot`](../../dbt/snapshots/customers_snapshot.sql) — `strategy='check'`,
+- **Snapshot:** [`customers_snapshot`](../snapshots/customers_snapshot.sql) — `strategy='check'`,
   `check_cols=['membership_tier']`, `unique_key='customer_id'`, `target_schema='snapshots'`, Delta.
-- **Source:** [`snap_customers_src`](../../dbt/models/staging/snap_customers_src.sql) (view) — a
+- **Source:** [`snap_customers_src`](../models/staging/snap_customers_src.sql) (view) — a
   `promote_c001` var flips **C001**'s tier from `gold` to `platinum`, so a source change is reproducible.
-- **Data:** 20 customers from [`customers.csv`](../../dbt/seeds/customers.csv).
+- **Data:** 20 customers from [`customers.csv`](../seeds/customers.csv).
 - **Laptop-safe:** 20 tiny rows, one var, no infra beyond the running Spark server (`make up`).
 
 ---

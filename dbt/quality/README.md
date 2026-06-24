@@ -1,6 +1,7 @@
-# `quality/` — dbt advanced & data quality (Phase 5) ✅ complete
+# `dbt/quality/` — dbt advanced & data quality (Phase 5) ✅ complete
 
-The data-modeling and data-quality track. It **expands the dbt project** in [`dbt/`](../dbt/) well
+The data-modeling and data-quality track. It lives **inside the dbt project** ([`dbt/`](../)) it
+teaches, and **expands** that project well
 beyond the two demo models and teaches **both** quality approaches and where each fits:
 
 - **dbt native tests** — structural / in-pipeline assertions (unique, not-null, relationships,
@@ -11,7 +12,7 @@ beyond the two demo models and teaches **both** quality approaches and where eac
   dbt run, against the Spark/Delta/Iceberg tables (Connect-safe via `toPandas`).
 
 Each module follows **Break → Detect → Fix → Prove** (see
-[`docs/CURRICULUM_BRIEF.md`](../docs/CURRICULUM_BRIEF.md)). The dbt artifacts live in [`dbt/`](../dbt/)
+[`docs/CURRICULUM_BRIEF.md`](../../docs/CURRICULUM_BRIEF.md)). The dbt artifacts live in [`dbt/`](../)
 (models / snapshots / macros / tests / seeds); the standalone Great Expectations lab lives in
 [`great_expectations/`](great_expectations/).
 
@@ -20,7 +21,7 @@ Each module follows **Break → Detect → Fix → Prove** (see
 > `file_format='delta'` where MERGE/incremental is needed (the Thrift+Iceberg classloader gotcha
 > means notebooks, not dbt, write Iceberg directly).
 >
-> **Run Great Expectations:** `PYTHONPATH=$(pwd) uv run python quality/great_expectations/validate_table.py`.
+> **Run Great Expectations:** from the repo root, `PYTHONPATH=$(pwd) uv run python dbt/quality/great_expectations/validate_table.py`.
 >
 > **Laptop-safe:** tiny seeds, all state in the Spark warehouse under `.tmp/`; `make clean` recovers.
 > No new Docker services — Phase 5 runs on the base `make up` stack.
@@ -31,28 +32,28 @@ Each module follows **Break → Detect → Fix → Prove** (see
 
 | ID | Module | Where | Status |
 |----|--------|-------|--------|
-| `DBT-1` | [Materializations & cost](dbt1_materializations/) — view / table / ephemeral / incremental tradeoffs | `dbt/` + writeup | `[x]` |
-| `DBT-2` | [Incremental strategies](dbt2_incremental/) — `merge` / `insert_overwrite` / `append`, `unique_key` | `dbt/models/marts/fct_orders.sql` | `[x]` |
-| `DBT-3` | [Late-arriving data & lookback](dbt3_late_arriving/) — event-time watermark drops late rows; a lookback recaptures them | `fct_orders` + `orders` seed | `[x]` |
-| `DBT-4` | [Snapshots / SCD Type 2](dbt4_snapshots_scd2/) — `dbt_valid_from/to`; check strategy | `dbt/snapshots/` | `[x]` |
-| `DBT-5` | [Schema-change handling](dbt5_schema_change/) — `on_schema_change`; add a column across runs | `fct_orders_evolving` | `[x]` |
-| `DBT-6` | [Testing strategy & layering](dbt6_testing_strategy/) — generic / singular / custom; `severity: warn` | `_quality__models.yml` + `macros/` + `tests/` | `[x]` |
-| `DBT-7` | [Quarantine pattern](dbt7_quarantine/) — route bad rows out instead of failing the build | `orders_clean` / `orders_quarantine` | `[x]` |
-| `DBT-8` | [dbt-expectations + Great Expectations](dbt8_expectations_ge/) — when to use which | `great_expectations/` + dbt tests | `[x]` |
-| `DBT-9` | [Sources, freshness, contracts, exposures](dbt9_sources_contracts/) — freshness SLAs, enforced contracts, lineage | `_sources.yml` / `dim_orders_contract` / `_exposures.yml` | `[x]` |
-| `DBT-10` | [Macros, state & slim CI](dbt10_macros_slim_ci/) — surrogate-key macro; `state:modified+` | `macros/` + `dim_orders_keyed` | `[x]` |
+| `DBT-1` | [Materializations & cost](dbt1_materializations.md) — view / table / ephemeral / incremental tradeoffs | `dbt/` + writeup | `[x]` |
+| `DBT-2` | [Incremental strategies](dbt2_incremental.md) — `merge` / `insert_overwrite` / `append`, `unique_key` | `dbt/models/marts/fct_orders.sql` | `[x]` |
+| `DBT-3` | [Late-arriving data & lookback](dbt3_late_arriving.md) — event-time watermark drops late rows; a lookback recaptures them | `fct_orders` + `orders` seed | `[x]` |
+| `DBT-4` | [Snapshots / SCD Type 2](dbt4_snapshots_scd2.md) — `dbt_valid_from/to`; check strategy | `dbt/snapshots/` | `[x]` |
+| `DBT-5` | [Schema-change handling](dbt5_schema_change.md) — `on_schema_change`; add a column across runs | `fct_orders_evolving` | `[x]` |
+| `DBT-6` | [Testing strategy & layering](dbt6_testing_strategy.md) — generic / singular / custom; `severity: warn` | `_quality__models.yml` + `macros/` + `tests/` | `[x]` |
+| `DBT-7` | [Quarantine pattern](dbt7_quarantine.md) — route bad rows out instead of failing the build | `orders_clean` / `orders_quarantine` | `[x]` |
+| `DBT-8` | [dbt-expectations + Great Expectations](dbt8_expectations_ge.md) — when to use which | `great_expectations/` + dbt tests | `[x]` |
+| `DBT-9` | [Sources, freshness, contracts, exposures](dbt9_sources_contracts.md) — freshness SLAs, enforced contracts, lineage | `_sources.yml` / `dim_orders_contract` / `_exposures.yml` | `[x]` |
+| `DBT-10` | [Macros, state & slim CI](dbt10_macros_slim_ci.md) — surrogate-key macro; `state:modified+` | `macros/` + `dim_orders_keyed` | `[x]` |
 
 ## Layout
 
 ```
-quality/
+dbt/quality/
 ├── README.md                      # this file (Phase 5 track index)
 ├── great_expectations/
 │   └── validate_table.py          # DBT-8 standalone GE (Connect-safe via toPandas)
-└── dbt1_materializations/ … dbt10_macros_slim_ci/   # the 10 Break→Detect→Fix→Prove writeups
+└── dbt1_materializations.md … dbt10_macros_slim_ci.md   # the 10 Break→Detect→Fix→Prove writeups
 ```
 
-The dbt artifacts these modules add to [`dbt/`](../dbt/): seeds (`orders.csv`,
+The dbt artifacts these modules add to the project ([`dbt/`](../)): seeds (`orders.csv`,
 `orders_quality_raw.csv`), staging (`stg_orders`, `stg_orders_quality`, `snap_customers_src`),
 marts (`fct_orders`, `fct_orders_evolving`, `orders_clean`, `orders_quarantine`,
 `dim_orders_contract`, `dim_orders_keyed`, `high_value_orders`), `snapshots/customers_snapshot.sql`,

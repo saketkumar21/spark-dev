@@ -8,7 +8,7 @@
 > visible *before* you ship it. This module wires up one of each and breaks the freshness SLA on
 > purpose to show the alert fire.
 
-This track expands the dbt project in [`dbt/`](../../dbt/). Run dbt with:
+This track expands the dbt project in [`dbt/`](README.md). Run dbt with:
 
 ```bash
 cd dbt && source .env && dbt <cmd>
@@ -17,10 +17,10 @@ cd dbt && source .env && dbt <cmd>
 - **Connection:** Thrift → the unified Spark server (`make up`), catalog `spark_catalog`
   (Delta / Hive managed tables). Spark UI at http://localhost:4040 (not central here — this module
   is about metadata and CI gates, not Stages).
-- **Artifacts:** [`models/_sources.yml`](../../dbt/models/_sources.yml) (a source with a freshness
-  SLA), [`models/marts/dim_orders_contract.sql`](../../dbt/models/marts/dim_orders_contract.sql) +
-  [`models/marts/_contract__models.yml`](../../dbt/models/marts/_contract__models.yml) (an enforced
-  contract), [`models/_exposures.yml`](../../dbt/models/_exposures.yml) (a dashboard exposure).
+- **Artifacts:** [`models/_sources.yml`](../models/_sources.yml) (a source with a freshness
+  SLA), [`models/marts/dim_orders_contract.sql`](../models/marts/dim_orders_contract.sql) +
+  [`models/marts/_contract__models.yml`](../models/marts/_contract__models.yml) (an enforced
+  contract), [`models/_exposures.yml`](../models/_exposures.yml) (a dashboard exposure).
 - **Laptop-safe:** the `orders` seed is ~15 rows; nothing here generates volume.
 
 ---
@@ -35,7 +35,7 @@ cd dbt && source .env && dbt <cmd>
 
 ## 2. Source freshness — the upstream early-warning
 
-[`_sources.yml`](../../dbt/models/_sources.yml) declares the seeded `orders` as a **source**, the
+[`_sources.yml`](../models/_sources.yml) declares the seeded `orders` as a **source**, the
 column dbt should read the landing time from, and how old that landing time may get:
 
 ```yaml
@@ -75,9 +75,9 @@ and only errors when the producer actually stalls.
 
 ## 4. Model contracts — fail fast on schema drift
 
-[`dim_orders_contract.sql`](../../dbt/models/marts/dim_orders_contract.sql) turns the contract on in
+[`dim_orders_contract.sql`](../models/marts/dim_orders_contract.sql) turns the contract on in
 config and the companion
-[`_contract__models.yml`](../../dbt/models/marts/_contract__models.yml) **declares the promised
+[`_contract__models.yml`](../models/marts/_contract__models.yml) **declares the promised
 output schema**:
 
 ```sql
@@ -128,7 +128,7 @@ the constraints enforce too; that's a platform difference, not a dbt one.
 
 ## 5. Exposures — put the downstream on the map
 
-[`_exposures.yml`](../../dbt/models/_exposures.yml) declares an `orders_dashboard` that depends on
+[`_exposures.yml`](../models/_exposures.yml) declares an `orders_dashboard` that depends on
 two marts:
 
 ```yaml
@@ -182,6 +182,6 @@ dbt docs generate     # exposure now shows as a downstream node in the lineage
 
 ## 8. Teardown
 
-These artifacts live in the shared [`dbt/`](../../dbt/) project; `dim_orders_contract` is the only
+These artifacts live in the shared [`dbt/`](README.md) project; `dim_orders_contract` is the only
 table built and `dbt build`/`--full-refresh` recreates it from the seeds. Sources and exposures
 create nothing. `make clean` clears all generated data under `.tmp/`.

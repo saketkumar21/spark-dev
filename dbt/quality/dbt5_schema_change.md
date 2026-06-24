@@ -6,8 +6,8 @@
 > `on_schema_change` config decides — and getting it wrong means either a broken build or
 > silently lost data. This module walks every mode on a real incremental model.
 
-- **Model:** [`dbt/models/marts/fct_orders_evolving.sql`](../../dbt/models/marts/fct_orders_evolving.sql)
-- **Extends:** the [`dbt/`](../../dbt/) project (this is a dbt-modeling module, not a notebook).
+- **Model:** [`dbt/models/marts/fct_orders_evolving.sql`](../models/marts/fct_orders_evolving.sql)
+- **Extends:** the [`dbt/`](README.md) project (this is a dbt-modeling module, not a notebook).
 - **Run via:** `cd dbt && source .env && dbt <cmd>` — Thrift JDBC → the unified Spark server,
   Delta-backed managed tables.
 - **Time:** ~5 min. **Laptop-safe:** 14 rows total, all under `.tmp/`; a plain `dbt build`

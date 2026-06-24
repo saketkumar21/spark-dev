@@ -7,7 +7,7 @@
 > of the whole warehouse on every PR). There's no pathology to break here; each step is a short demo
 > and the command output *is* the artifact.
 
-This track expands the dbt project in [`dbt/`](../../dbt/). Run dbt with:
+This track expands the dbt project in [`dbt/`](README.md). Run dbt with:
 
 ```bash
 cd dbt && source .env && dbt <cmd>
@@ -16,9 +16,9 @@ cd dbt && source .env && dbt <cmd>
 - **Connection:** Thrift → the unified Spark server (`make up`), catalog `spark_catalog`
   (Delta / Hive managed tables). Spark UI at http://localhost:4040 (not central — this module is
   about Jinja and CI selectors, not Stages).
-- **Artifacts:** [`macros/surrogate_key.sql`](../../dbt/macros/surrogate_key.sql) (a hand-rolled
-  surrogate-key macro), [`models/marts/dim_orders_keyed.sql`](../../dbt/models/marts/dim_orders_keyed.sql)
-  (uses it), [`macros/test_non_negative.sql`](../../dbt/macros/test_non_negative.sql) (a
+- **Artifacts:** [`macros/surrogate_key.sql`](../macros/surrogate_key.sql) (a hand-rolled
+  surrogate-key macro), [`models/marts/dim_orders_keyed.sql`](../models/marts/dim_orders_keyed.sql)
+  (uses it), [`macros/test_non_negative.sql`](../macros/test_non_negative.sql) (a
   macro-as-test).
 - **Laptop-safe:** the `orders` seed is ~15 rows; the only files written are `dim_orders_keyed` and a
   copy of `manifest.json` in `/tmp`.
@@ -29,7 +29,7 @@ cd dbt && source .env && dbt <cmd>
 
 A dbt macro is a Jinja function that **emits SQL**. The point is DRY: a transformation used in ten
 models lives in one macro, and fixing it fixes all ten.
-[`surrogate_key.sql`](../../dbt/macros/surrogate_key.sql) builds a stable hash key from a list of
+[`surrogate_key.sql`](../macros/surrogate_key.sql) builds a stable hash key from a list of
 business columns — no extra package needed:
 
 ```jinja
@@ -49,7 +49,7 @@ Two properties make this a *good* macro, and they're the general lesson:
   `('a|', '')`. Hand-rolling the null handling is exactly what packaged helpers like
   `dbt_utils.generate_surrogate_key` do for you; writing it once here shows what's underneath.
 
-[`dim_orders_keyed.sql`](../../dbt/models/marts/dim_orders_keyed.sql) just calls it:
+[`dim_orders_keyed.sql`](../models/marts/dim_orders_keyed.sql) just calls it:
 
 ```sql
 {{ config(materialized='view') }}
@@ -71,7 +71,7 @@ literal `md5(concat_ws('|', coalesce(cast(order_id as string), '_null_'), ...))`
 
 ### Macro-as-test
 
-The same mechanism powers **custom generic tests**. [`test_non_negative.sql`](../../dbt/macros/test_non_negative.sql)
+The same mechanism powers **custom generic tests**. [`test_non_negative.sql`](../macros/test_non_negative.sql)
 is a macro that returns the **failing rows** (a generic test passes when its query returns zero):
 
 ```jinja
@@ -171,6 +171,6 @@ asks *"what changed?"*, **deferral** asks *"where do unbuilt upstreams come from
 
 ## 5. Teardown
 
-`dim_orders_keyed` lives in the shared [`dbt/`](../../dbt/) project (`dbt build`/`--full-refresh`
+`dim_orders_keyed` lives in the shared [`dbt/`](README.md) project (`dbt build`/`--full-refresh`
 recreates it from the seeds); the macros create nothing. Remove the saved-state copy with
 `rm -rf /tmp/dbt_state`. `make clean` clears all generated data under `.tmp/`.

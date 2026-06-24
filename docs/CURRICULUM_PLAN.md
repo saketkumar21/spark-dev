@@ -30,7 +30,7 @@ yet** — this is the scaffolding that makes the "break it safely & measure it" 
 
 | ID | Module | What it delivers |
 |----|--------|------------------|
-| `F-0` | **Modular restructure (incremental)** | Introduce per-track folders (`common/`, `spark/`, `iceberg/`, `kafka/`, `debezium/`, `quality/`, expand `dbt/`, `airflow/`). Migrate gradually; repo stays runnable. |
+| `F-0` | **Modular restructure (incremental)** | Introduce per-track folders (`common/`, `spark/`, `iceberg/`, `kafka/`, `debezium/`, expand `dbt/` incl. `dbt/quality/`, `airflow/`). Migrate gradually; repo stays runnable. |
 | `F-1` | **Resource-profile switcher** | `constrained` (tiny `driver/executor.memory`, few cores, AQE off, low broadcast threshold) vs `tuned` profiles, plus a **memory-capped Docker service (~2–3 GB)** so OOM is real but the host stays usable. A `make` flag / env var flips them. |
 | `F-2` | **Synthetic data generator** (`common/datagen.py`) | `spark.range()`-based helpers to generate uniform / **skewed** / wide / high-cardinality data on the fly at any "logical size" without storing it. Skew knob (e.g. 90% of rows on one key). |
 | `F-3` | **`metrics_diff` helper** (`common/metrics_diff.py`) | Captures stage/query metrics (runtime, shuffle r/w, spill, max-vs-median task time, peak memory) and prints a **before/after comparison table**. Used by every module. |
@@ -122,7 +122,7 @@ Lives in `debezium/` with its own compose additions (Postgres + Kafka Connect), 
 
 # PHASE 5 — dbt advanced & data quality (dbt tests + Great Expectations)
 
-Expands the existing dbt project well beyond the two demo models. Data-quality labs live in `quality/`.
+Expands the existing dbt project well beyond the two demo models. Data-quality labs live in `dbt/quality/`.
 
 | ID | Module | Scenario / what the learner builds & breaks |
 |----|--------|---------------------------------------------|

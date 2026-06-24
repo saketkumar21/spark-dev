@@ -52,7 +52,7 @@ Start with [`docs/CURRICULUM_BRIEF.md`](docs/CURRICULUM_BRIEF.md) and
   - [`iceberg/`](iceberg/README.md) — **Phase 2 ✅ complete** · `LAK-1…LAK-10` (formats, small files, snapshots, orphans, manifests, schema evo, partitioning, MERGE, time travel, internals)
   - [`kafka/`](kafka/README.md) — **Phase 3 ✅ complete** · `KAF-1…KAF-6` + `STR-1…STR-3` (hot partitions, consumer lag, rebalancing, retention/compaction, delivery semantics, poison-pill/dead-letter, watermarking, checkpoints, backpressure)
   - [`debezium/`](debezium/README.md) — **Phase 4 ✅ complete** · `CDC-1…CDC-9` (logical replication, connector bring-up, snapshot modes, event envelope, WAL/slot growth, deletes & replica identity, Spark→Iceberg MERGE, schema evolution, failure-mode tour)
-  - [`quality/`](quality/README.md) — **Phase 5 ✅ complete** · `DBT-1…DBT-10` (materializations, incremental strategies, late-arriving/lookback, SCD2 snapshots, schema-change, testing/layering, quarantine, dbt-expectations + Great Expectations, sources/freshness/contracts/exposures, macros/slim-CI)
+  - [`dbt/quality/`](dbt/quality/README.md) — **Phase 5 ✅ complete** · `DBT-1…DBT-10` (materializations, incremental strategies, late-arriving/lookback, SCD2 snapshots, schema-change, testing/layering, quarantine, dbt-expectations + Great Expectations, sources/freshness/contracts/exposures, macros/slim-CI)
   - [`airflow/`](airflow/README.md) — **Phase 6 ✅ complete** · `AF-1…AF-10` (idempotency, execution model, catchup/backfill, retries/SLA, sensor modes, trigger rules/branching, dynamic mapping, XCom limits, assets/data-aware, dbt+Spark e2e)
   - [`capstone/`](capstone/README.md) — **Phase 7 ✅ complete** · `CAP-1` end-to-end pipeline · `CAP-2` [incident simulator](capstone/incident_simulator/) (8 on-call cards) · `CAP-3` [observability](docs/OBSERVABILITY.md) (opt-in `make monitoring-up`: Prometheus + Grafana + exporters) · `CAP-4` [learning path](docs/LEARNING_PATH.md)
 - **Start here:** the [**learning path**](docs/LEARNING_PATH.md) orders all 58 modules with time estimates and "what you can diagnose after each."
@@ -247,14 +247,13 @@ spark-dev/
 ├── iceberg/                    # Phase 2 ✅ lakehouse / table-format correctness (LAK-1..10)
 ├── kafka/                      # Phase 3 ✅ Kafka & Structured Streaming robustness (KAF-1..6, STR-1..3)
 ├── debezium/                   # Phase 4 ✅ CDC: Postgres→Debezium→Kafka→Spark→Iceberg (CDC-1..9)
-├── quality/                    # Phase 5 ✅ dbt advanced + data quality (DBT-1..10; dbt-expectations + GE)
 ├── capstone/                   # Phase 7 ✅ CAP-1 e2e pipeline + CAP-2 incident simulator (8 cards)
 ├── docs/                       # curriculum brief/plan, spark-ui-guide, troubleshooting
 ├── airflow/                    # Airflow project (separate uv env)
 │   ├── pyproject.toml          # Airflow + provider dependencies
 │   ├── passwords.json          # Local auth (airflow/airflow, role: admin)
 │   └── dags/                   # Phase 6 ✅ teaching DAGs (AF-1..10) + example_dag
-├── dbt/                        # dbt project (models, seeds, tests)
+├── dbt/                        # dbt project (models, seeds, tests) + quality/ (Phase 5 ✅ DBT-1..10 + GE)
 ├── pyproject.toml              # Python dependencies
 └── .tmp/                       # Generated data (gitignored)
 ```

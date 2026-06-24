@@ -7,11 +7,11 @@
 > ERROR — exactly the calibration that keeps a pipeline both safe and shippable.
 
 - **Artifacts:**
-  [`dbt/models/marts/_quality__models.yml`](../../dbt/models/marts/_quality__models.yml) (tests),
-  [`dbt/macros/test_non_negative.sql`](../../dbt/macros/test_non_negative.sql) (custom generic test),
-  [`dbt/tests/assert_orders_reconcile.sql`](../../dbt/tests/assert_orders_reconcile.sql) (singular test),
-  seed [`dbt/seeds/orders_quality_raw.csv`](../../dbt/seeds/orders_quality_raw.csv) (the bad rows).
-- **Extends:** the [`dbt/`](../../dbt/) project. **Run via:**
+  [`dbt/models/marts/_quality__models.yml`](../models/marts/_quality__models.yml) (tests),
+  [`dbt/macros/test_non_negative.sql`](../macros/test_non_negative.sql) (custom generic test),
+  [`dbt/tests/assert_orders_reconcile.sql`](../tests/assert_orders_reconcile.sql) (singular test),
+  seed [`dbt/seeds/orders_quality_raw.csv`](../seeds/orders_quality_raw.csv) (the bad rows).
+- **Extends:** the [`dbt/`](README.md) project. **Run via:**
   `cd dbt && source .env && dbt <cmd>` — Thrift JDBC → the unified Spark server, Delta tables.
 - **Time:** ~5 min. **Laptop-safe:** 5 raw rows, all under `.tmp/`; `make clean` resets.
 
@@ -29,7 +29,7 @@
 | 2000, 2004 | clean | — |
 
 `stg_orders_quality` is a thin typed **view** over that seed (it still contains all 5 bad-and-
-good rows). [DBT-7](../) then splits it into `orders_clean` (passes every rule) and
+good rows). [DBT-7](README.md) then splits it into `orders_clean` (passes every rule) and
 `orders_quarantine` (the 3 offenders, tagged with a reason). This module **tests** all of
 those — and the layering is the whole point.
 
@@ -116,7 +116,7 @@ dbt test -s stg_orders_quality orders_clean orders_quarantine assert_orders_reco
   headline: a real data problem surfaced, pipeline still green.
 - Every **`orders_clean`** business test **PASSES** at ERROR severity — the custom `non_negative`,
   the `relationships` FK to `stg_customers`, the default-severity `accepted_values`, and the
-  `dbt_expectations` range test. They pass because the [DBT-7](../) quarantine already removed
+  `dbt_expectations` range test. They pass because the [DBT-7](README.md) quarantine already removed
   the three bad rows (−9.99, C999, 'shipped') before they reached the clean mart. Quarantine at
   the model layer is *why* the strict tests can stay strict and still go green.
 - The `not_null` on `orders_quarantine.quarantine_reason` passes (every quarantined row has a
@@ -148,7 +148,7 @@ dbt test -s stg_orders_quality orders_clean orders_quarantine assert_orders_reco
 - **Use a singular test** for cross-table / cross-grain invariants a column test can't express
   (reconciliation, "no row in A without a match in B by composite key").
 - **Calibrate severity deliberately** — `warn` for raw-domain noise and not-yet-enforced rules,
-  `error` for contracts. Pair `warn` with the [DBT-7](../) quarantine so warned rows are
+  `error` for contracts. Pair `warn` with the [DBT-7](README.md) quarantine so warned rows are
   *routed*, not merely logged.
 
 ## 8. Prove it
@@ -176,7 +176,7 @@ surfaced without blocking; everything strict passes because quarantine cleaned t
   (values/ranges/relationships). A bug caught at staging is cheaper than one caught in a mart.
 - **Severity is a CI policy, not a detail** — `warn` surfaces, `error` blocks. Reserve `error`
   for consumer contracts; let raw-domain noise `warn` and route it via the quarantine pattern.
-- **Tests + quarantine compose** — [DBT-7](../) routes bad rows out so the marts' strict ERROR
+- **Tests + quarantine compose** — [DBT-7](README.md) routes bad rows out so the marts' strict ERROR
   tests stay green; the staging WARN keeps the problem visible. That pairing is what lets a
   pipeline be both **safe** and **always shippable**. Statistical / drift checks beyond
   fixed-domain assertions are **DBT-8** (dbt-expectations + Great Expectations).

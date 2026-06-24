@@ -62,7 +62,7 @@ bridge to **Phase 7's capstone**.
 
 ## How it connects to the rest of the curriculum
 
-- **AF-10** runs the **Phase 5** dbt models + the Great Expectations gate (`quality/`) on the
+- **AF-10** runs the **Phase 5** dbt models + the Great Expectations gate (`dbt/quality/`) on the
   **Phase 1–2** Spark/Iceberg/Delta stack — the same models the **Phase 4** CDC pipeline feeds.
 - **AF-1/2/3** (idempotency, data-interval, backfill) are exactly what make the incremental and
   late-arriving patterns from **DBT-2/DBT-3** safe to replay.

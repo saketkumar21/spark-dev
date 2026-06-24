@@ -108,8 +108,7 @@ spark-dev/
 ├── iceberg/         # Lakehouse / table-format modules
 ├── kafka/           # Kafka + Structured Streaming modules + producers
 ├── debezium/        # CDC track: Postgres + Debezium compose, connector configs, notebooks
-├── dbt/             # dbt project (expanded)
-├── quality/         # Great Expectations + dbt-test labs
+├── dbt/             # dbt project (expanded) + quality/ (Great Expectations + dbt-test labs)
 ├── airflow/         # generic local teaching DAGs (+ optional sanitized prod reference)
 ├── conf/ scripts/ Dockerfile docker-compose.yml
 ```

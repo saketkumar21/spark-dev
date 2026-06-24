@@ -72,7 +72,7 @@ with DAG(
         task_id="ge_quality_gate",
         bash_command=(
             f"cd {REPO} && PYTHONPATH={REPO} uv run python "
-            f"quality/great_expectations/validate_table.py spark_catalog.marts.orders_clean"
+            f"dbt/quality/great_expectations/validate_table.py spark_catalog.marts.orders_clean"
         ),
     )
     cleanup = BashOperator(

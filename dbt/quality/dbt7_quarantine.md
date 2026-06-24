@@ -8,7 +8,7 @@
 > bad rows are triaged out-of-band with a reason attached, and a **reconcile test** guarantees no row
 > was silently lost or duplicated in the split.
 
-This track expands the dbt project in [`dbt/`](../../dbt/). Run dbt with:
+This track expands the dbt project in [`dbt/`](README.md). Run dbt with:
 
 ```bash
 cd dbt && source .env        # sets DBT_PROFILES_DIR + Thrift connection vars
@@ -18,13 +18,13 @@ dbt <cmd>                     # Thrift JDBC → Spark; marts are Delta tables
 - **Connection:** Thrift → the unified Spark server (`make up`), catalog `spark_catalog`
   (Delta / Hive managed tables). Spark UI at http://localhost:4040.
 - **Artifacts:**
-  - Seed [`seeds/orders_quality_raw.csv`](../../dbt/seeds/orders_quality_raw.csv) — 5 rows with
+  - Seed [`seeds/orders_quality_raw.csv`](../seeds/orders_quality_raw.csv) — 5 rows with
     deliberate defects.
-  - [`models/staging/stg_orders_quality.sql`](../../dbt/models/staging/stg_orders_quality.sql) — typed view.
-  - [`models/marts/orders_clean.sql`](../../dbt/models/marts/orders_clean.sql) — rows passing **all** rules.
-  - [`models/marts/orders_quarantine.sql`](../../dbt/models/marts/orders_quarantine.sql) — rows
+  - [`models/staging/stg_orders_quality.sql`](../models/staging/stg_orders_quality.sql) — typed view.
+  - [`models/marts/orders_clean.sql`](../models/marts/orders_clean.sql) — rows passing **all** rules.
+  - [`models/marts/orders_quarantine.sql`](../models/marts/orders_quarantine.sql) — rows
     **failing** a rule, tagged with `quarantine_reason`.
-  - [`tests/assert_orders_reconcile.sql`](../../dbt/tests/assert_orders_reconcile.sql) — singular
+  - [`tests/assert_orders_reconcile.sql`](../tests/assert_orders_reconcile.sql) — singular
     test: `clean + quarantine == raw`.
 - **Laptop-safe:** 5 tiny rows, no infra beyond the running Spark server.
 
@@ -195,12 +195,12 @@ three bad rows are documented and queryable rather than blocking the run.
   queue and lets you alert on *trends* (a sudden spike in `orphan_customer` is a real incident).
 - **Mind layering.** Structural tests (`unique`, `not_null`) still belong at staging and *should*
   fail loudly. It's the **business-logic** rules that move into the clean/quarantine split — see
-  [`_quality__models.yml`](../../dbt/models/marts/_quality__models.yml), where the raw model's
+  [`_quality__models.yml`](../models/marts/_quality__models.yml), where the raw model's
   `accepted_values` is `severity: warn` (flags, doesn't block) while the clean model's is ERROR
   (passes, because the quarantine guaranteed it).
 
 ## 8. Teardown
 
-These models live in the shared [`dbt/`](../../dbt/) project; there's nothing module-specific to
+These models live in the shared [`dbt/`](README.md) project; there's nothing module-specific to
 tear down. `dbt build` rebuilds them from the seeds, and `make clean` clears all generated data
 under `.tmp/`.

@@ -41,6 +41,6 @@ The daily incremental mart is **missing rows**. The missing orders are present i
 
 - **Prove:** Re-run the same batch (`load_through` unchanged) with the lookback set, and count. The missing late rows reappear and the mart count matches the source for the window — e.g. naive run = 13 rows (late order dropped), fixed run with `lookback_hours: 48` = 14 rows (late order **recaptured**), and the 13 already-present rows are not duplicated.
 
-- **Reproduce &amp; learn it:** [DBT-3](../../quality/dbt3_late_arriving/) — a 14-row seed with separate `ordered_at` (event) and `loaded_at` (load) clocks and exactly one genuinely-late order; replay batch 1 → naive batch 2 (lookback 0, row dropped) → fixed batch 2 (lookback 48 h, row recaptured) and watch the count go 12 → 13 → 14.
+- **Reproduce &amp; learn it:** [DBT-3](../../dbt/quality/dbt3_late_arriving.md) — a 14-row seed with separate `ordered_at` (event) and `loaded_at` (load) clocks and exactly one genuinely-late order; replay batch 1 → naive batch 2 (lookback 0, row dropped) → fixed batch 2 (lookback 48 h, row recaptured) and watch the count go 12 → 13 → 14.
 
 </details>

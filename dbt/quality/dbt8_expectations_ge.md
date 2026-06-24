@@ -9,7 +9,7 @@
 > against any source, on its own schedule, producing data docs. This module builds one of each and,
 > more importantly, teaches **when to reach for which.**
 
-This track expands the dbt project in [`dbt/`](../../dbt/). Run dbt with:
+This track expands the dbt project in [`dbt/`](README.md). Run dbt with:
 
 ```bash
 cd dbt && source .env        # sets DBT_PROFILES_DIR + Thrift connection vars
@@ -21,12 +21,12 @@ The standalone GE script runs **from the repo root** (not from `dbt/`).
 - **Connection:** Thrift → the unified Spark server (`make up`), catalog `spark_catalog`
   (Delta / Hive managed tables). Spark UI at http://localhost:4040.
 - **Artifacts:**
-  - [`dbt/packages.yml`](../../dbt/packages.yml) — `metaplane/dbt_expectations` `>=0.10.0, <0.11.0`.
-  - [`dbt/models/marts/_quality__models.yml`](../../dbt/models/marts/_quality__models.yml) — an
+  - [`dbt/packages.yml`](../packages.yml) — `metaplane/dbt_expectations` `>=0.10.0, <0.11.0`.
+  - [`dbt/models/marts/_quality__models.yml`](../models/marts/_quality__models.yml) — an
     `expect_column_values_to_be_between` test on `orders_clean.amount` (min 0, max 100000).
-  - [`quality/great_expectations/validate_table.py`](../great_expectations/validate_table.py) —
+  - [`dbt/quality/great_expectations/validate_table.py`](great_expectations/validate_table.py) —
     standalone GE validation of a Spark/Delta/Iceberg table over Spark Connect.
-- **Laptop-safe:** validates `orders_clean` (the 2-row clean mart from [DBT-7](../dbt7_quarantine/));
+- **Laptop-safe:** validates `orders_clean` (the 2-row clean mart from [DBT-7](dbt7_quarantine.md));
   no volume, no extra infra.
 
 ---
@@ -80,7 +80,7 @@ fail CI when a value drifts out of band — the bad `5000000` row above would tu
 
 ### Great Expectations — validation decoupled from the run
 
-[`validate_table.py`](../great_expectations/validate_table.py) reads a table and validates it with an
+[`validate_table.py`](great_expectations/validate_table.py) reads a table and validates it with an
 **ephemeral** GE context and an `ExpectationSuite` — no dbt run, no persistent GE project required:
 
 ```python
@@ -154,7 +154,7 @@ holds 50.00 and 75.00 — both inside `[0, 100000]`).
 **Standalone GE (decoupled), from the repo root:**
 
 ```bash
-PYTHONPATH=$(pwd) uv run python quality/great_expectations/validate_table.py
+PYTHONPATH=$(pwd) uv run python dbt/quality/great_expectations/validate_table.py
 # optional: pass a fully-qualified table name, e.g.
 #   ... validate_table.py iceberg_catalog.default.lak2_events
 ```
@@ -187,11 +187,11 @@ live Delta table read over Spark Connect.
 - **Make the standalone check CI-friendly.** The script exits non-zero on failure, so it slots into a
   CI gate or an Airflow task as cleanly as a dbt test does — the difference is *when* and *against
   what* it runs, not whether it can gate a deploy.
-- Closes the Phase-5 data-quality arc: [DBT-7](../dbt7_quarantine/) keeps bad rows from blocking the
+- Closes the Phase-5 data-quality arc: [DBT-7](dbt7_quarantine.md) keeps bad rows from blocking the
   pipeline; DBT-8 keeps *sensible-but-wrong* values from slipping through unseen.
 
 ## 8. Teardown
 
-Nothing module-specific to tear down: the dbt tests run against the shared [`dbt/`](../../dbt/)
+Nothing module-specific to tear down: the dbt tests run against the shared [`dbt/`](README.md)
 models, and the GE script builds only an **ephemeral** context (no files written). `dbt build`
 rebuilds the models from the seeds; `make clean` clears all generated data under `.tmp/`.

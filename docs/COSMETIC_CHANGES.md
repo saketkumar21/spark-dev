@@ -19,9 +19,16 @@ Break→Detect→Fix→Prove narratives overlap (and can drift). The agreed fix:
    (how to run, the `common/` toolkit, reading the UI). **Do NOT** migrate per-module depth up into
    it (that would just move the two-place split up a level and re-introduce drift).
 
-**For `quality/` (dbt), `airflow/`, `capstone/`: leave exactly as-is.** They have no per-module
-notebook (the artifact lives in `dbt/`, `airflow/dags/`, or is a markdown incident card), so their
-README/docstring *is* the module — nothing to fold into.
+**For `airflow/`, `capstone/`: leave exactly as-is.** They have no per-module notebook (the artifact
+lives in `airflow/dags/` or is a markdown incident card), so their README/docstring *is* the module —
+nothing to fold into.
+
+> **Update (2026-06-24):** the former top-level `quality/` track was **moved into the dbt project**
+> it teaches → `dbt/quality/`, and its 10 markdown-only module folders were **flattened to files**
+> (`dbt/quality/dbtN_*.md`); the track index (`dbt/quality/README.md`) and the GE lab
+> (`dbt/quality/great_expectations/`) stayed. `dbt build` is unaffected (dbt only compiles
+> `models/seeds/tests/macros`). All cross-links were updated. This is the one place the
+> "leave non-notebook tracks as-is" guidance was superseded.
 
 Resulting convention, stated plainly:
 > **Notebook tracks → the notebook is the module. Non-notebook tracks → the README is the module.**
@@ -51,7 +58,7 @@ GitHub without opening them. The track README still gives the at-a-glance map. E
    per file, no shared-file contention.
 3. **Per track:** quick link-check (the `../<module>/` folder links still resolve), strip notebook
    outputs, commit per track (`cosmetic: fold <track> module READMEs into notebooks`).
-4. **Do not touch** `quality/`, `airflow/`, `capstone/`, or the ~131 cross-links (folders stay, so
+4. **Do not touch** `airflow/`, `capstone/`, or the ~131 cross-links (folders stay, so
    links keep resolving). Update `docs/LEARNING_PATH.md` only if any link text implies "README."
 
 ## Key facts to remember

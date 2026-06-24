@@ -5,7 +5,7 @@ pandas DataFrame (toPandas is Connect-safe for the small teaching tables) and va
 This is exactly where GE complements dbt tests: statistical / distribution / profiling checks
 and standalone validation, decoupled from the dbt run.
 
-Run:  PYTHONPATH=<repo-root> uv run python quality/great_expectations/validate_table.py [fqtn]
+Run:  PYTHONPATH=<repo-root> uv run python dbt/quality/great_expectations/validate_table.py [fqtn]
 """
 import sys
 import great_expectations as gx

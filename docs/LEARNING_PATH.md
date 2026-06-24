@@ -102,21 +102,21 @@ Prereq: Phase 3 (Kafka), LAK-8 (MERGE). Run `make cdc-up` first.
 | [CDC-8 schema evolution](../debezium/schema_evolution/) | 15 | DDL not in the stream; evolving the sink |
 | [CDC-9 failure-mode tour](../debezium/failure_modes/) | 20 | offset recovery, ordering, effectively-once reasoning |
 
-### Phase 5 · `quality/` — dbt advanced & data quality
+### Phase 5 · `dbt/quality/` — dbt advanced & data quality
 Prereq: SQL/dbt basics. Run `cd dbt && source .env && dbt deps` first.
 
 | Module | min | After it you can diagnose… |
 |--------|----:|----------------------------|
-| [DBT-1 materializations](../quality/dbt1_materializations/) | 15 | view/table/ephemeral/incremental cost tradeoffs |
-| [DBT-2 incremental strategies](../quality/dbt2_incremental/) ⭐ | 20 | merge vs insert_overwrite vs append; `unique_key` idempotency |
-| [DBT-3 late-arriving & lookback](../quality/dbt3_late_arriving/) ⭐ | 20 | rows silently dropped by a tight incremental window |
-| [DBT-4 SCD2 snapshots](../quality/dbt4_snapshots_scd2/) | 15 | `dbt_valid_from/to`; missed intraday changes |
-| [DBT-5 schema-change](../quality/dbt5_schema_change/) | 15 | `on_schema_change`; a column added/removed across runs |
-| [DBT-6 testing & layering](../quality/dbt6_testing_strategy/) | 15 | generic/singular/custom tests; `severity: warn` |
-| [DBT-7 quarantine](../quality/dbt7_quarantine/) | 15 | routing bad rows out instead of failing the build |
-| [DBT-8 dbt-expectations + GE](../quality/dbt8_expectations_ge/) | 20 | statistical/distribution checks; when dbt-tests vs GE |
-| [DBT-9 sources/freshness/contracts](../quality/dbt9_sources_contracts/) | 20 | a freshness SLA breach; an enforced contract |
-| [DBT-10 macros & slim CI](../quality/dbt10_macros_slim_ci/) | 20 | surrogate-key macros; `state:modified+` slim CI |
+| [DBT-1 materializations](../dbt/quality/dbt1_materializations.md) | 15 | view/table/ephemeral/incremental cost tradeoffs |
+| [DBT-2 incremental strategies](../dbt/quality/dbt2_incremental.md) ⭐ | 20 | merge vs insert_overwrite vs append; `unique_key` idempotency |
+| [DBT-3 late-arriving & lookback](../dbt/quality/dbt3_late_arriving.md) ⭐ | 20 | rows silently dropped by a tight incremental window |
+| [DBT-4 SCD2 snapshots](../dbt/quality/dbt4_snapshots_scd2.md) | 15 | `dbt_valid_from/to`; missed intraday changes |
+| [DBT-5 schema-change](../dbt/quality/dbt5_schema_change.md) | 15 | `on_schema_change`; a column added/removed across runs |
+| [DBT-6 testing & layering](../dbt/quality/dbt6_testing_strategy.md) | 15 | generic/singular/custom tests; `severity: warn` |
+| [DBT-7 quarantine](../dbt/quality/dbt7_quarantine.md) | 15 | routing bad rows out instead of failing the build |
+| [DBT-8 dbt-expectations + GE](../dbt/quality/dbt8_expectations_ge.md) | 20 | statistical/distribution checks; when dbt-tests vs GE |
+| [DBT-9 sources/freshness/contracts](../dbt/quality/dbt9_sources_contracts.md) | 20 | a freshness SLA breach; an enforced contract |
+| [DBT-10 macros & slim CI](../dbt/quality/dbt10_macros_slim_ci.md) | 20 | surrogate-key macros; `state:modified+` slim CI |
 
 ### Phase 6 · `airflow/` — orchestration
 Prereq: AF-1→AF-3 give the data-interval foundation. Run `make airflow-up` (or `airflow dags test`).
