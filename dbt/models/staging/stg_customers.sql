@@ -1,3 +1,9 @@
+{{
+    config(
+        transpile_from = 'spark',
+    )
+}}
+
 with source as (
 
     select * from {{ ref('customers') }}

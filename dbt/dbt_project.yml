@@ -15,10 +15,18 @@ seeds:
   spark_dev:
     +schema: seeds
     +full_refresh: true
-    # +file_format: iceberg
+    +pre-hook:
+      - "DROP TABLE IF EXISTS {{ this }};"
+    +file_format: iceberg
 
 models:
   spark_dev:
+    # dbt-spark-transpile: global default — treat model SQL as Snowflake and
+    # transpile to Spark at compile time. Override per model with
+    # {{ config(transpile_from='snowflake'|'spark'|…) }}. No-op when the source
+    # dialect equals the target (spark) or (guarded mode) no QUALIFY token is present.
+    +transpile_from: snowflake
+    +transpile_to: spark
     # +file_format: iceberg
     +materialized: table
     staging:

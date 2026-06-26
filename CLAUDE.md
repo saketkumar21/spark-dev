@@ -72,10 +72,22 @@ All built modules are verified end-to-end via headless `nbconvert` against the r
 - Reason: The Thrift Server has a classloader isolation bug where `spark.jars.packages` JARs aren't accessible from HiveServer2 execution threads
 - `spark.jars.packages` is NOT used in spark-defaults.conf — JARs on the system classpath work
 
-### Default catalog is `spark_catalog` (not `iceberg_catalog`)
-- dbt creates tables in `spark_catalog` (Delta/Hive managed tables)
-- Notebooks use `iceberg_catalog.my_database.xxx` explicitly — they never rely on the default catalog
-- This avoids the Iceberg classloader issue with Thrift while keeping Iceberg fully usable from notebooks
+### Default catalog is `spark_catalog`; dbt can target any catalog explicitly
+- `spark_catalog` (Delta/Hive) is the **default** — dbt models land there unless they say otherwise.
+- Notebooks use `iceberg_catalog.my_database.xxx` explicitly.
+- **Iceberg writes over Thrift work now** (verified: `CREATE TABLE iceberg_catalog.ns.t USING iceberg AS …`
+  via :10000 succeeds; metadata ops too). The old "Iceberg classloader bug on Thrift" is resolved by the
+  baked-in system-classpath JARs — that caveat no longer applies.
+- **dbt → explicit catalog: the schema-string trick (no code).** dbt-spark forbids the `database`
+  field (`SparkRelation` raises `"Cannot set database in spark!"`) but renders `schema.identifier`, so
+  put the catalog *in the schema*: `{{ config(schema='iceberg_catalog.marts', file_format='iceberg') }}`
+  → renders `iceberg_catalog.marts.<t>`. The repo's `generate_schema_name` override already passes a
+  custom schema through unchanged, so **no package/macro is needed**. Verified on stock dbt-spark: a
+  delta-schema model → `spark_catalog.marts.<t>` (provider delta), an iceberg-schema model →
+  `iceberg_catalog.marts.<t>` (provider iceberg). (A `dbt-spark-catalog` monkeypatch was prototyped and
+  **removed as over-engineered** — the trick does the same in one config line.) Only `delta` + `iceberg`
+  catalogs exist today; `hudi_catalog` is designed (needs a `hudi-spark4.0-bundle_2.13` JAR + image
+  rebuild) — see `docs/CATALOG_ROUTING_DESIGN.md`.
 
 ### Iceberg namespaces are pre-created as directories
 - The Hadoop-based Iceberg catalog stores namespaces as filesystem directories
@@ -111,15 +123,72 @@ dbt build          # seed + run + test
 - `models/marts/dim_customers` (table) — enriched customer dimension (region, tier, tenure).
 - `models/marts/agg_customers` (table) — aggregated customer metrics. (Phase 5 expands this project.)
 
-### dbt-spark-qualify
-- Local package at `./dbt-spark-qualify/`
-- Monkeypatches `SparkConnectionManager.add_query()` to transpile QUALIFY clauses via sqlglot
-- Installed via `[tool.uv.sources]` in pyproject.toml
-- Uses a `.pth` file for automatic loading before dbt imports
+### dbt-spark-transpile
+- Local package at `./dbt/dbt-spark-transpile/` (renamed + moved from the old `dbt-spark-qualify/`).
+- Write a model in another SQL dialect (e.g. Snowflake); it is transpiled to Spark via `sqlglot` at
+  **compile phase** — monkeypatches `dbt.compilation.Compiler._compile_code`, so the rewrite happens
+  on the model **body before** dbt's materialization wrapper. `target/compiled/` and the executed SQL
+  are both the Spark form (no mixed-dialect string; no separate output folder). This replaced the old
+  `add_query` (submit-phase) patch, which couldn't handle the Spark-DDL-wrapped string.
+- Opt in via config (no per-project code): project-level `models: +transpile_from: snowflake` and/or
+  per-model `{{ config(transpile_from='snowflake') }}` (model overrides project). Optional
+  `transpile_to` (default `spark`).
+- **No-op** when `transpile_from` is unset or equals the target dialect → sqlglot is never called.
+  Otherwise **every opted-in model is transpiled** (full sqlglot breadth — IFF→IF, NVL→COALESCE, ::→CAST,
+  DATEADD, QUALIFY, …); scope it the dbt-native way (set `+transpile_from` on a folder/model subtree, not
+  project-wide) rather than a token throttle. (An earlier `TRANSPILE_MODE=guarded` QUALIFY-token throttle
+  was **removed as POC residue** — for a real Snowflake repo it would silently skip the many non-QUALIFY
+  models that still need IFF/NVL/:: conversion.) **Fail-soft:** any transpile error / empty / multi-statement
+  output logs an `AdapterLogger` WARNING visible in the dbt run and passes the original SQL through unchanged
+  (never crashes a compile) — e.g. with project-wide `+transpile_from: snowflake`, `stg_customers`' Spark-style
+  `datediff(end, start)` warns and runs unchanged. Output is **pretty-printed** (`pretty=True`).
+- **`NULLS LAST` in transpiled SQL is intentional**, not cosmetic: Snowflake (`nulls_are_large`) and Spark
+  (`nulls_are_small`) have opposite default null ordering, so sqlglot makes the ordering explicit to
+  preserve Snowflake semantics (e.g. a `QUALIFY ROW_NUMBER()=1` top-N pick). No clean sqlglot knob
+  suppresses only the cosmetic case — don't strip it. (The `spark_catalog.` table qualification is from
+  the `generate_schema_name` routing macro, not sqlglot.)
+- **Fix-up layer (`SPARK_FIXUPS`) — makes it trustable for a real Snowflake repo.** sqlglot's Spark output
+  is sometimes rejected by Spark 4.0.2's *real* parser — notably `x NOT IN (subquery)`, which sqlglot's
+  Snowflake reader canonicalizes to the **unsupported** `x <> ALL (subquery)`. So the transpile is now
+  `parse(read=src) → apply fix-up transforms → generate(spark)`; the first fix-up rewrites quantified-subquery
+  comparisons (`<> ALL`/`= ANY (subq)`) back to `NOT x IN`/`x IN (subq)`. Extensible registry, each
+  EXPLAIN-verified. A model is converted to **verified-valid Spark or fails LOUD — never silently wrong**.
+- **Trust check:** `make transpile-check` (or `python dbt/dbt-spark-transpile/transpile_check.py` after
+  `dbt compile`) zero-row-validates every compiled model on Spark and classifies verified-valid /
+  **DIALECT blocker** (named, with Spark error class) / upstream-not-built; exits non-zero on any blocker
+  (CI gate). The full **"run a Snowflake dbt repo on Spark, config-only"** story is `docs/SNOWFLAKE_ON_SPARK.md`.
+- Installed via `[tool.uv.sources]` in pyproject.toml; the `.pth` is placed into site-packages by a
+  `build_py` override in `setup.py` (the `data_files` `.pth` trick lands in the venv root under uv and
+  never loads — see the package README). Spark 4.0.2 has no native `QUALIFY` (`[PARSE_SYNTAX_ERROR]`),
+  which is why the transpile is genuinely needed. The model SQL→Spark catalog/format routing
+  (delta/iceberg/hudi) is a **separate** concern — the schema-string trick, below.
+
+### Multi-catalog targeting (format-driven, via `generate_schema_name`)
+- **The user sets only `file_format`; the table is auto-routed to the matching catalog.**
+  `macros/generate_schema_name.sql` maps `delta→spark_catalog`, `iceberg→iceberg_catalog`,
+  `hudi→hudi_catalog` and prepends the catalog onto the schema (the "schema-string trick": dbt-spark
+  renders `schema.identifier`, so `catalog.schema.identifier` targets that catalog). So
+  `{{ config(materialized='table', file_format='iceberg') }}` in `marts/` →
+  `iceberg_catalog.marts.<t>`; `file_format='delta'` → `spark_catalog.marts.<t>`. No `database` field, no
+  manual `schema=` (you *can* still pass a dotted `schema='cat.ns'` — the macro leaves an already-dotted
+  schema untouched). Models with no `file_format` (views, seeds) are unaffected (no prefix).
+- **Why the schema, not `database`:** dbt-spark forbids the `database` field (`SparkRelation` raises
+  `"Cannot set database in spark!"`). **Verified on stock dbt-spark:** a `delta` model → provider delta in
+  `spark_catalog`, an `iceberg` model → provider iceberg in `iceberg_catalog` (incl. incremental-merge).
+- A `dbt-spark-catalog` `.pth` monkeypatch (relaxing the `SparkRelation` guards to honor `database`) was
+  prototyped and **removed as over-engineered** — the schema-string trick + this macro achieve the same
+  with no package (the user's real-world Glue approach: `+schema: silver.schema`). See
+  `docs/CATALOG_ROUTING_DESIGN.md`.
+- Only `delta` + `iceberg` catalogs exist today. Hudi is **designed, not installed**: needs
+  `org.apache.hudi:hudi-spark4.0-bundle_2.13:1.2.0` in the Dockerfile + a `hudi_catalog` (`HoodieCatalog`)
+  + `HoodieSparkSessionExtension`/`KryoSerializer` in `conf/spark-defaults.conf` → image rebuild + restart.
+  Once added, the same schema trick routes to it.
 
 ### Schema naming
-- `macros/generate_schema_name.sql` overrides dbt's default behavior
-- Custom schemas are used directly (e.g., `staging`, `marts`) without prepending the target schema
+- `macros/generate_schema_name.sql` overrides dbt's default behavior. Two jobs:
+  (1) custom schemas are used directly (e.g., `staging`, `marts`) without prepending the target schema;
+  (2) **format-driven catalog routing** — it prepends the catalog matching the model's `file_format`
+  (delta→`spark_catalog`, iceberg→`iceberg_catalog`, hudi→`hudi_catalog`). See *Multi-catalog targeting* above.
 
 ## Airflow
 
@@ -154,9 +223,9 @@ Airflow 3 runs **locally** via `uv` (separate venv in `airflow/`), independent o
 │   ├── models/staging/        stg_customers (view)
 │   ├── models/marts/          dim_customers + agg_customers (tables)
 │   ├── macros/                generate_schema_name override
-│   └── quality/               Phase 5 ✅ DBT-1..10 writeups + great_expectations/ (GE lab)
+│   ├── quality/               Phase 5 ✅ DBT-1..10 writeups + great_expectations/ (GE lab)
+│   └── dbt-spark-transpile/   Local pkg: write Snowflake SQL → transpiled to Spark at dbt compile (.pth)
 ├── airflow/                Local Airflow (separate uv venv); dags/ tracked (example_dag.py)
-├── dbt-spark-qualify/      Local package: QUALIFY → CTE transpilation
 ├── pyproject.toml          uv-managed, Python >=3.13
 └── .tmp/                   ALL generated data (gitignored)
 ```

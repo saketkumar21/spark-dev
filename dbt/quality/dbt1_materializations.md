@@ -63,7 +63,7 @@ repeating cost onto every consumer.
 
 ```sql
 -- dim_customers: enriched customer dimension (region, tier_rank, tenure_segment)
--- agg_customers: per-tier aggregate (uses QUALIFY → transpiled by dbt-spark-qualify)
+-- agg_customers: per-tier aggregate (uses QUALIFY → transpiled to Spark at compile by dbt-spark-transpile)
 ```
 
 `dbt run` **materializes** the result once, so reads are a cheap scan of stored rows. The cost

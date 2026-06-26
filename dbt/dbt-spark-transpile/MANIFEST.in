@@ -1,0 +1,5 @@
+include dbt_spark_transpile.pth
+include LICENSE
+include README.md
+include CHANGELOG.md
+recursive-include tests *.py

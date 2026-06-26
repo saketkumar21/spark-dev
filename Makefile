@@ -1,7 +1,7 @@
 .PHONY: help up up-constrained _ports down restart restart-constrained logs jupyter jupyter-stop \
        clean clean-all status build cdc-up cdc-down cdc-logs \
        monitoring-up monitoring-down monitoring-logs \
-       dbt-build dbt-debug airflow-up airflow-down airflow-logs airflow-clean
+       dbt-build dbt-debug transpile-check airflow-up airflow-down airflow-logs airflow-clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -106,6 +106,11 @@ dbt-build: ## Full dbt pipeline: seed + run + test
 dbt-debug: ## Verify dbt connection to Spark Thrift Server
 	@set -a && [ -f .env ] && . ./.env && set +a && \
 	cd dbt && uv run dbt debug --profiles-dir .
+
+transpile-check: ## Certify which compiled models are verified-valid on Spark (Snowflake→Spark drop-in)
+	@set -a && [ -f .env ] && . ./.env && set +a && \
+	cd dbt && uv run dbt compile --profiles-dir . >/dev/null && cd .. && \
+	uv run python dbt/dbt-spark-transpile/transpile_check.py --compiled-dir dbt/target/compiled
 
 # ── Airflow ─────────────────────────────────────────────────────────────────
 

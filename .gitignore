@@ -22,9 +22,9 @@ dbt/logs/
 dbt/.env
 dbt/.user.yml
 
-# dbt-spark-qualify build artifacts
-dbt-spark-qualify/build/
-dbt-spark-qualify/*.egg-info
+# dbt-spark-transpile build artifacts
+dbt/dbt-spark-transpile/build/
+dbt/dbt-spark-transpile/*.egg-info
 
 # Airflow runtime (logs, db, etc.) — but DO track teaching DAGs under airflow/dags/
 airflow/.airflow_home/

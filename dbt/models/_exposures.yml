@@ -3,7 +3,7 @@ exposures:
   - name: orders_dashboard
     type: dashboard
     maturity: high
-    url: http://localhost:8080
+    url: http://localhost:9000
     description: "Illustrative executive orders dashboard — shows up in `dbt docs` lineage."
     depends_on:
       - ref('fct_orders')

@@ -11,6 +11,7 @@ models:
               values: ['completed', 'refunded', 'pending']
               config:
                 severity: warn                   # WARN: flags the bad 'shipped' row but does NOT fail the build
+                warn_if: "> 5"
 
   - name: orders_clean
     description: "Validated orders — BUSINESS-LOGIC tests must pass here (the quarantine guaranteed it)."

@@ -548,19 +548,22 @@ pyhive = [
 ]
 
 [[package]]
-name = "dbt-spark-qualify"
+name = "dbt-spark-transpile"
 version = "0.1.0"
-source = { directory = "dbt-spark-qualify" }
+source = { directory = "dbt/dbt-spark-transpile" }
 dependencies = [
-    { name = "dbt-spark" },
+    { name = "dbt-core" },
     { name = "sqlglot" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "dbt-spark" },
+    { name = "dbt-core" },
+    { name = "pyhive", extras = ["hive"], marker = "extra == 'check'" },
+    { name = "pytest", marker = "extra == 'test'" },
     { name = "sqlglot" },
 ]
+provides-extras = ["check", "test"]
 
 [[package]]
 name = "debugpy"
@@ -2219,7 +2222,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "dbt-core" },
     { name = "dbt-spark", extra = ["pyhive"] },
-    { name = "dbt-spark-qualify" },
+    { name = "dbt-spark-transpile" },
     { name = "great-expectations" },
     { name = "jupyterlab" },
     { name = "kafka-python" },
@@ -2235,7 +2238,7 @@ dependencies = [
 requires-dist = [
     { name = "dbt-core", specifier = "==1.11.0" },
     { name = "dbt-spark", extras = ["pyhive"], specifier = ">=1.9.0" },
-    { name = "dbt-spark-qualify", directory = "dbt-spark-qualify" },
+    { name = "dbt-spark-transpile", directory = "dbt/dbt-spark-transpile" },
     { name = "great-expectations", specifier = ">=1.18.0" },
     { name = "jupyterlab", specifier = ">=4.5.6" },
     { name = "kafka-python", specifier = ">=2.0.2" },

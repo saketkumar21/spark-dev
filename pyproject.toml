@@ -16,8 +16,8 @@ dependencies = [
     "pyspark==4.0.2",
     "sparksql-magic>=0.0.3",
     "sqlglot>=30.7.0",
-    "dbt-spark-qualify"
+    "dbt-spark-transpile"
 ]
 
 [tool.uv.sources]
-dbt-spark-qualify = { path = "./dbt-spark-qualify" }
+dbt-spark-transpile = { path = "./dbt/dbt-spark-transpile" }
