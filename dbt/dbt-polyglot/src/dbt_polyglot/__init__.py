@@ -17,7 +17,12 @@ own native flag — no extra tooling needed:
     dbt build --empty           # build every model with zero input rows
     dbt show --limit 0 -s model # read-only: validate without materializing
 """
-__version__ = "0.2.0"
+# Single source of truth for the version: read installed package metadata (pyproject.toml).
+try:
+    from importlib.metadata import version
+    __version__ = version("dbt-polyglot")
+except Exception:                      # not installed (e.g. running from a source checkout)
+    __version__ = "0.0.0+unknown"
 
 # Activate the compile-time transpile patch. Import-guarded so non-dbt Python is unaffected.
 try:

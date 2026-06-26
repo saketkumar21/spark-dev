@@ -6,10 +6,9 @@ All notable changes to `dbt-polyglot` are documented here. Format loosely follow
 ## [0.1.0] — Unreleased
 
 ### Added
-Initial release (as `dbt-polyglot`).
-- `dbt-polyglot` - A standard src-layout
-  (`src/dbt_polyglot/`): split into `transpile` (the compile-phase patch) and `fixups` (the
-  `SPARK_FIXUPS` registry), with import-time activation in `__init__`.
+Initial release.
+- Standard src-layout package (`src/dbt_polyglot/`): `transpile` (the compile-phase patch) +
+  `fixups` (the `SPARK_FIXUPS` registry), with import-time activation in `__init__`.
 - Compile-phase transpile: wraps `dbt.compilation.Compiler._compile_code` to translate each opted-in
   model's SQL from a source dialect to Spark via `sqlglot` (`parse → fix-ups → generate`), before dbt
   wraps it in materialization DDL. Opt in with `+transpile_from: <dialect>` in dbt config; no model edits.

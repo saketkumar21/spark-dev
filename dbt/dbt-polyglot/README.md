@@ -1,18 +1,23 @@
 # dbt-polyglot
 
-**Run a dbt project written in another SQL dialect (Snowflake, BigQuery, Redshift, …) on
-Spark — unchanged.** Each model's SQL is transpiled to Spark with
-[`sqlglot`](https://github.com/tobikodata/sqlglot) at dbt's **compile phase**, so the SQL
-dbt actually executes (and what lands in `target/compiled/`) is already Spark.
+**Run dbt models written in one SQL dialect on a warehouse that speaks another — unchanged.**
+Each model's SQL is transpiled with [`sqlglot`](https://github.com/tobikodata/sqlglot) at
+dbt's **compile phase**, so the SQL dbt actually executes (and what lands in `target/compiled/`)
+is already in your target dialect. Your model `.sql` files are never edited.
 
-The only changes are configuration — your model `.sql` files are never edited. Drop the
-package into any existing dbt repo, point `profiles.yml` at Spark, declare the source
-dialect in `dbt_project.yml`, and `dbt build`.
+You declare two things in config: the dialect your models are *written* in (`transpile_from`)
+and the dialect of the warehouse you *run* on (`transpile_to`, default `spark`). Drop the
+package into any existing dbt repo, point `profiles.yml` at your warehouse, add one flag to
+`dbt_project.yml`, and `dbt build`.
 
-> Why this exists: Spark has no `QUALIFY` clause (`[PARSE_SYNTAX_ERROR] … near 'QUALIFY'`),
-> plus dozens of smaller dialect gaps (`IFF`, `NVL`, `::` casts, `DATEADD`, null ordering, …).
-> A portable/Snowflake-style model fails on Spark until its SQL is translated. This package
-> does that translation transparently, in-place, at compile time.
+> Why this exists: dialects diverge. Spark, for example, has no `QUALIFY` clause
+> (`[PARSE_SYNTAX_ERROR] … near 'QUALIFY'`), plus dozens of smaller gaps (`IFF`, `NVL`, `::`
+> casts, `DATEADD`, null ordering, …) — a Snowflake-style model simply fails there until its SQL
+> is translated. This package does that translation transparently, in-place, at compile time.
+>
+> **Spark is the first-class target today** — it carries the correctness fix-up layer and the
+> validation story (see [Targets](#targets)). Any other `sqlglot` dialect works as a target too,
+> best-effort.
 
 ---
 
@@ -49,7 +54,7 @@ pip install "dbt-spark[PyHive]"     # Thrift/HiveServer2, used in the examples b
 
 ## Configure (the only changes you make)
 
-### 1. `profiles.yml` — point the output at Spark
+### 1. `profiles.yml` — point the output at your warehouse (Spark shown)
 
 ```yaml
 your_profile:
@@ -63,18 +68,19 @@ your_profile:
       schema: analytics
 ```
 
-### 2. `dbt_project.yml` — declare your models' source dialect
+### 2. `dbt_project.yml` — declare the source dialect (and target, if not Spark)
 
 ```yaml
 models:
   your_project:
-    +transpile_from: snowflake     # the dialect your models are written in
-    # +transpile_to: spark         # optional, default 'spark'
+    +transpile_from: snowflake     # the dialect your models are WRITTEN in
+    # +transpile_to: spark         # your WAREHOUSE's dialect (default: spark)
 ```
 
-`transpile_from` accepts **any** dialect `sqlglot` understands — `snowflake`, `bigquery`,
-`redshift`, `tsql`, `postgres`, `duckdb`, `presto`, `trino`, … `transpile_to` defaults to
-`spark` and rarely needs changing.
+Both accept **any** dialect `sqlglot` understands — `snowflake`, `bigquery`, `redshift`,
+`tsql`, `postgres`, `duckdb`, `databricks`, `presto`, `trino`, … `transpile_to` defaults to
+`spark`; set it to match the warehouse `profiles.yml` connects to. It **must** agree with your
+dbt adapter, since dbt executes the transpiled SQL there.
 
 You can scope it to a subtree (`models.your_project.staging.+transpile_from: …`) or override
 it per model — a per-model `config` beats the project default:
@@ -98,7 +104,7 @@ At dbt **compile**, the package wraps `dbt.compilation.Compiler._compile_code` a
 extra step on each opted-in model's compiled SQL body:
 
 ```
-parse(read=transpile_from)  →  apply SPARK_FIXUPS  →  generate(transpile_to, pretty=True)
+parse(read=transpile_from)  →  apply fix-ups (Spark target only)  →  generate(transpile_to, pretty=True)
 ```
 
 Because the rewrite happens on the model body **before** dbt wraps it in the materialization
@@ -114,6 +120,23 @@ list of small AST transforms applied to the parsed tree before Spark SQL is gene
 first one rewrites quantified-subquery comparisons (`<> ALL` / `= ANY (subq)`) back to
 `NOT x IN` / `x IN (subq)`. The registry is extensible — one EXPLAIN-verified transform per
 gap discovered.
+
+### Targets
+
+At the **engine** level the transpile is `N×N` — any `sqlglot` source dialect to any target,
+chosen by `transpile_from` / `transpile_to`. In practice there's a maturity gradient:
+
+- **Spark — first-class.** The `SPARK_FIXUPS` correctness layer runs only when
+  `transpile_to=spark`, and Spark is the target both the fix-ups and the `dbt build --empty`
+  validation story are tested against. This is the production-trustworthy path.
+- **Any other target — best-effort.** You get raw `sqlglot` output with no repair layer. Often
+  correct, but `sqlglot` can emit constructs the real engine rejects with nothing to catch them
+  — e.g. Snowflake `x NOT IN (subquery)` transpiled *to BigQuery* becomes the unsupported
+  `x <> ALL (subquery)` (the very case `SPARK_FIXUPS` repairs for Spark).
+
+Promoting another target to first-class is a bounded extension: add a `<TARGET>_FIXUPS` registry
+beside `SPARK_FIXUPS` and key fix-up selection on `transpile_to`. Either way, `transpile_to` must
+match your dbt adapter — dbt runs the output against that warehouse.
 
 ### Trust model — verified, or fails loud (never silently wrong)
 
